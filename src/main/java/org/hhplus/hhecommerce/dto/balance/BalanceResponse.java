@@ -1,0 +1,32 @@
+package org.hhplus.hhecommerce.dto.balance;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Schema(description = "잔액 조회 응답")
+public class BalanceResponse {
+
+    @Schema(description = "잔액 ID", example = "1")
+    private Long id;
+
+    @Schema(description = "사용자 ID", example = "1")
+    private Long userId;
+
+    @Schema(description = "잔액 (원)", example = "1000000")
+    private Integer amount;
+
+    @Schema(description = "생성 일시", example = "2024-09-28T13:51:32.123")
+    private LocalDateTime createdAt;
+
+    @Schema(description = "수정 일시", example = "2024-10-27T13:51:32.123")
+    private LocalDateTime updatedAt;
+}
