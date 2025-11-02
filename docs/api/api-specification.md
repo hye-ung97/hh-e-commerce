@@ -93,22 +93,22 @@ sequenceDiagram
     participant PR as ProductRepository
     participant DB as Database
 
-    C->>S: getProductList(status?, page, size)
+    C->>S: 상품 목록 조회 요청
     activate S
 
     Note over S: 필터 조건 검증 및 처리
 
-    S->>PR: findAllWithFilter(status, pageable)
+    S->>PR: 상품 목록 필터 조회
     activate PR
-    PR->>DB: SELECT * FROM PRODUCT<br/>WHERE (status = ? OR ? IS NULL)<br/>ORDER BY created_at DESC<br/>LIMIT ? OFFSET ?
-    DB-->>PR: List<Product> + totalCount
+    PR->>DB: 상품 데이터 조회
+    DB-->>PR: 상품 목록 + 총 개수
     deactivate PR
 
     alt Products is empty
         S-->>C: PageResponse<ProductResponse> (empty)
     end
 
-    Note over S: Product 응답 데이터 매핑
+    Note over S: 응답 데이터 매핑
 
     S-->>C: PageResponse<ProductResponse>
     deactivate S
@@ -125,13 +125,13 @@ sequenceDiagram
     participant POR as ProductOptionRepository
     participant DB as Database
 
-    C->>S: getProductDetail(productId)
+    C->>S: 상품 상세 조회 요청
     activate S
 
-    S->>PR: findById(productId)
+    S->>PR: 상품 정보 조회
     activate PR
-    PR->>DB: SELECT * FROM PRODUCT<br/>WHERE id = ?
-    DB-->>PR: Product
+    PR->>DB: 상품 데이터 조회
+    DB-->>PR: 상품 정보
     deactivate PR
 
     alt Product not found
@@ -142,13 +142,13 @@ sequenceDiagram
         S-->>C: throw ProductNotAvailableException
     end
 
-    S->>POR: findByProductId(productId)
+    S->>POR: 상품 옵션 조회
     activate POR
-    POR->>DB: SELECT * FROM PRODUCT_OPTION<br/>WHERE product_id = ?<br/>ORDER BY id
-    DB-->>POR: List<ProductOption>
+    POR->>DB: 옵션 데이터 조회
+    DB-->>POR: 옵션 목록
     deactivate POR
 
-    Note over S: Product + Options 매핑
+    Note over S: 상품 정보 + 옵션 매핑
 
     S-->>C: ProductDetailResponse
     deactivate S
@@ -166,36 +166,36 @@ sequenceDiagram
     participant POR as ProductOptionRepository
     participant DB as Database
 
-    C->>S: getPopularProducts()
+    C->>S: 인기 상품 조회 요청
     activate S
 
-    Note over S: 최근 3일 날짜 계산<br/>(현재 시각 - 3일)
+    Note over S: 최근 3일 날짜 계산
 
-    S->>OIR: findTopProductsByPeriod(startDate, endDate, limit=5)
+    S->>OIR: 기간별 판매량 상위 상품 조회
     activate OIR
-    OIR->>DB: SELECT po.product_id, SUM(oi.quantity) as total_quantity<br/>FROM ORDER_ITEM oi<br/>JOIN PRODUCT_OPTION po ON oi.product_option_id = po.id<br/>WHERE oi.created_at >= ? AND oi.created_at < ?<br/>AND oi.status = 'ORDERED'<br/>GROUP BY po.product_id<br/>ORDER BY total_quantity DESC<br/>LIMIT 5
-    DB-->>OIR: List<ProductSalesInfo>
+    OIR->>DB: 판매량 집계 데이터 조회
+    DB-->>OIR: 판매량 정보
     deactivate OIR
 
     alt No sales data
         S-->>C: List<PopularProductResponse> (empty)
     end
 
-    Note over S: productIds 추출
+    Note over S: 상품 ID 추출
 
-    S->>PR: findAllById(productIds)
+    S->>PR: 상품 정보 조회
     activate PR
-    PR->>DB: SELECT * FROM PRODUCT<br/>WHERE id IN (?)
-    DB-->>PR: List<Product>
+    PR->>DB: 상품 데이터 조회
+    DB-->>PR: 상품 목록
     deactivate PR
 
-    S->>POR: findByProductIdIn(productIds)
+    S->>POR: 상품 옵션 조회
     activate POR
-    POR->>DB: SELECT * FROM PRODUCT_OPTION<br/>WHERE product_id IN (?)
-    DB-->>POR: List<ProductOption>
+    POR->>DB: 옵션 데이터 조회
+    DB-->>POR: 옵션 목록
     deactivate POR
 
-    Note over S: Product + Options + 판매량 매핑<br/>판매량 순으로 정렬
+    Note over S: 상품 정보 + 옵션 + 판매량 매핑<br/>판매량 순으로 정렬
 
     S-->>C: List<PopularProductResponse>
     deactivate S
@@ -215,36 +215,36 @@ sequenceDiagram
     participant PR as ProductRepository
     participant DB as Database
 
-    C->>S: getCartList(userId)
+    C->>S: 장바구니 조회 요청
     activate S
 
-    S->>CR: findByUserId(userId)
+    S->>CR: 장바구니 목록 조회
     activate CR
-    CR->>DB: SELECT * FROM CART<br/>WHERE user_id = ?<br/>ORDER BY created_at DESC
-    DB-->>CR: List<Cart>
+    CR->>DB: 장바구니 데이터 조회
+    DB-->>CR: 장바구니 목록
     deactivate CR
 
     alt Cart is empty
         S-->>C: List<CartResponse> (empty)
     end
 
-    Note over S: productOptionIds 추출
+    Note over S: 상품 옵션 ID 추출
 
-    S->>POR: findAllById(productOptionIds)
+    S->>POR: 상품 옵션 조회
     activate POR
-    POR->>DB: SELECT * FROM PRODUCT_OPTION<br/>WHERE id IN (?)
-    DB-->>POR: List<ProductOption>
+    POR->>DB: 옵션 데이터 조회
+    DB-->>POR: 옵션 목록
     deactivate POR
 
-    Note over S: productIds 추출
+    Note over S: 상품 ID 추출
 
-    S->>PR: findAllById(productIds)
+    S->>PR: 상품 정보 조회
     activate PR
-    PR->>DB: SELECT * FROM PRODUCT<br/>WHERE id IN (?)
-    DB-->>PR: List<Product>
+    PR->>DB: 상품 데이터 조회
+    DB-->>PR: 상품 목록
     deactivate PR
 
-    Note over S: Cart + Product + ProductOption 매핑
+    Note over S: 장바구니 + 상품 + 옵션 매핑
 
     S-->>C: List<CartResponse>
     deactivate S
@@ -261,15 +261,15 @@ sequenceDiagram
     participant CR as CartRepository
     participant DB as Database
 
-    C->>S: addCartItem(userId, productOptionId, quantity)
+    C->>S: 장바구니 상품 추가 요청
     activate S
 
-    Note over S: 수량 유효성 검증 (quantity > 0)
+    Note over S: 수량 유효성 검증
 
-    S->>POR: findById(productOptionId)
+    S->>POR: 상품 옵션 조회
     activate POR
-    POR->>DB: SELECT * FROM PRODUCT_OPTION<br/>WHERE id = ?
-    DB-->>POR: ProductOption
+    POR->>DB: 옵션 데이터 조회
+    DB-->>POR: 옵션 정보
     deactivate POR
 
     alt ProductOption not found
@@ -280,25 +280,25 @@ sequenceDiagram
         S-->>C: throw InsufficientStockException
     end
 
-    S->>CR: findByUserIdAndProductOptionId(userId, productOptionId)
+    S->>CR: 기존 장바구니 항목 확인
     activate CR
-    CR->>DB: SELECT * FROM CART<br/>WHERE user_id = ?<br/>AND product_option_id = ?
-    DB-->>CR: Optional<Cart>
+    CR->>DB: 장바구니 데이터 조회
+    DB-->>CR: 장바구니 정보
     deactivate CR
 
     alt Cart already exists
         Note over S: 기존 수량 + 요청 수량
-        S->>CR: update(cart)
+        S->>CR: 수량 업데이트
         activate CR
-        CR->>DB: UPDATE CART<br/>SET quantity = ?,<br/>updated_at = CURRENT_TIMESTAMP<br/>WHERE id = ?
-        DB-->>CR: updated count
+        CR->>DB: 장바구니 수량 변경
+        DB-->>CR: 업데이트 결과
         deactivate CR
     else Cart not exists
         Note over S: 새 장바구니 항목 생성
-        S->>CR: save(cart)
+        S->>CR: 장바구니 저장
         activate CR
-        CR->>DB: INSERT INTO CART<br/>(user_id, product_option_id, quantity)<br/>VALUES (?, ?, ?)
-        DB-->>CR: Cart
+        CR->>DB: 장바구니 데이터 삽입
+        DB-->>CR: 저장된 장바구니
         deactivate CR
     end
 
@@ -317,35 +317,35 @@ sequenceDiagram
     participant POR as ProductOptionRepository
     participant DB as Database
 
-    C->>S: updateCartItem(userId, cartId, quantity)
+    C->>S: 장바구니 수량 변경 요청
     activate S
 
-    Note over S: 수량 유효성 검증 (quantity > 0)
+    Note over S: 수량 유효성 검증
 
-    S->>CR: findByIdAndUserId(cartId, userId)
+    S->>CR: 장바구니 항목 조회
     activate CR
-    CR->>DB: SELECT * FROM CART<br/>WHERE id = ?<br/>AND user_id = ?
-    DB-->>CR: Optional<Cart>
+    CR->>DB: 장바구니 데이터 조회
+    DB-->>CR: 장바구니 정보
     deactivate CR
 
     alt Cart not found
         S-->>C: throw CartNotFoundException
     end
 
-    S->>POR: findById(cart.productOptionId)
+    S->>POR: 상품 옵션 조회
     activate POR
-    POR->>DB: SELECT * FROM PRODUCT_OPTION<br/>WHERE id = ?
-    DB-->>POR: ProductOption
+    POR->>DB: 옵션 데이터 조회
+    DB-->>POR: 옵션 정보
     deactivate POR
 
     alt Stock is insufficient
         S-->>C: throw InsufficientStockException
     end
 
-    S->>CR: update(cart)
+    S->>CR: 수량 업데이트
     activate CR
-    CR->>DB: UPDATE CART<br/>SET quantity = ?,<br/>updated_at = CURRENT_TIMESTAMP<br/>WHERE id = ?
-    DB-->>CR: updated count
+    CR->>DB: 장바구니 수량 변경
+    DB-->>CR: 업데이트 결과
     deactivate CR
 
     S-->>C: CartResponse
@@ -362,23 +362,23 @@ sequenceDiagram
     participant CR as CartRepository
     participant DB as Database
 
-    C->>S: deleteCartItem(userId, cartId)
+    C->>S: 장바구니 상품 삭제 요청
     activate S
 
-    S->>CR: findByIdAndUserId(cartId, userId)
+    S->>CR: 장바구니 항목 조회
     activate CR
-    CR->>DB: SELECT * FROM CART<br/>WHERE id = ?<br/>AND user_id = ?
-    DB-->>CR: Optional<Cart>
+    CR->>DB: 장바구니 데이터 조회
+    DB-->>CR: 장바구니 정보
     deactivate CR
 
     alt Cart not found
         S-->>C: throw CartNotFoundException
     end
 
-    S->>CR: delete(cart)
+    S->>CR: 장바구니 삭제
     activate CR
-    CR->>DB: DELETE FROM CART<br/>WHERE id = ?
-    DB-->>CR: deleted count
+    CR->>DB: 장바구니 데이터 삭제
+    DB-->>CR: 삭제 결과
     deactivate CR
 
     S-->>C: success
@@ -405,27 +405,27 @@ sequenceDiagram
     participant ES as ExternalService
     participant DB as Database
 
-    C->>S: createOrder(userId, userCouponId?)
+    C->>S: 주문 생성 요청
     activate S
 
     Note over S: 트랜잭션 시작
 
-    S->>CR: findByUserId(userId)
+    S->>CR: 장바구니 조회
     activate CR
-    CR->>DB: SELECT * FROM CART<br/>WHERE user_id = ?
-    DB-->>CR: List<Cart>
+    CR->>DB: 장바구니 데이터 조회
+    DB-->>CR: 장바구니 목록
     deactivate CR
 
     alt Cart is empty
         S-->>C: throw EmptyCartException
     end
 
-    Note over S: productOptionIds 추출
+    Note over S: 상품 옵션 ID 추출
 
-    S->>POR: findAllByIdWithLock(productOptionIds)
+    S->>POR: 상품 옵션 조회 (락)
     activate POR
-    POR->>DB: SELECT * FROM PRODUCT_OPTION<br/>WHERE id IN (?)<br/>FOR UPDATE
-    DB-->>POR: List<ProductOption>
+    POR->>DB: 옵션 데이터 조회 및 잠금
+    DB-->>POR: 옵션 목록
     deactivate POR
 
     Note over S: 재고 확인 (비관적 락)
@@ -437,88 +437,88 @@ sequenceDiagram
     Note over S: 총 주문 금액 계산
 
     opt Coupon is provided
-        S->>UCR: findByIdAndUserIdWithLock(userCouponId, userId)
+        S->>UCR: 사용자 쿠폰 조회 (락)
         activate UCR
-        UCR->>DB: SELECT * FROM USER_COUPON<br/>WHERE id = ?<br/>AND user_id = ?<br/>FOR UPDATE
-        DB-->>UCR: UserCoupon
+        UCR->>DB: 쿠폰 데이터 조회 및 잠금
+        DB-->>UCR: 쿠폰 정보
         deactivate UCR
 
         alt Coupon not available
             S-->>C: throw CouponNotAvailableException
         end
 
-        Note over S: 쿠폰 할인 금액 계산<br/>(할인율 or 고정금액)
+        Note over S: 쿠폰 할인 금액 계산
     end
 
-    Note over S: 최종 결제 금액 = 총 금액 - 할인
+    Note over S: 최종 결제 금액 계산
 
-    S->>BR: findByUserIdWithLock(userId)
+    S->>BR: 잔액 조회 (락)
     activate BR
-    BR->>DB: SELECT * FROM BALANCE<br/>WHERE user_id = ?<br/>FOR UPDATE
-    DB-->>BR: Balance
+    BR->>DB: 잔액 데이터 조회 및 잠금
+    DB-->>BR: 잔액 정보
     deactivate BR
 
     alt Balance is insufficient
         S-->>C: throw InsufficientBalanceException
     end
 
-    S->>OR: save(order)
+    S->>OR: 주문 생성
     activate OR
-    OR->>DB: INSERT INTO `ORDER`<br/>(user_id, total_amount, discount_amount, final_amount)<br/>VALUES (?, ?, ?, ?)
-    DB-->>OR: Order
+    OR->>DB: 주문 데이터 삽입
+    DB-->>OR: 주문 정보
     deactivate OR
 
     loop For each cart item
-        S->>OIR: save(orderItem)
+        S->>OIR: 주문 항목 생성
         activate OIR
-        OIR->>DB: INSERT INTO ORDER_ITEM<br/>(order_id, product_option_id, quantity, unit_price, sub_total)<br/>VALUES (?, ?, ?, ?, ?)
-        DB-->>OIR: OrderItem
+        OIR->>DB: 주문 항목 데이터 삽입
+        DB-->>OIR: 주문 항목
         deactivate OIR
 
-        S->>POR: updateStock(productOptionId, quantity)
+        S->>POR: 재고 차감
         activate POR
-        POR->>DB: UPDATE PRODUCT_OPTION<br/>SET stock = stock - ?<br/>WHERE id = ?
-        DB-->>POR: updated count
+        POR->>DB: 재고 수량 감소
+        DB-->>POR: 업데이트 결과
         deactivate POR
     end
 
-    S->>PayR: save(payment)
+    S->>PayR: 결제 정보 생성
     activate PayR
-    PayR->>DB: INSERT INTO PAYMENT<br/>(order_id, amount, method, status)<br/>VALUES (?, ?, 'BALANCE', 'COMPLETED')
-    DB-->>PayR: Payment
+    PayR->>DB: 결제 데이터 삽입
+    DB-->>PayR: 결제 정보
     deactivate PayR
 
     opt Coupon is used
-        S->>PCR: save(paymentCoupon)
+        S->>PCR: 결제 쿠폰 정보 생성
         activate PCR
-        PCR->>DB: INSERT INTO PAYMENT_COUPON<br/>(payment_id, user_coupon_id, discount_amount)<br/>VALUES (?, ?, ?)
-        DB-->>PCR: PaymentCoupon
+        PCR->>DB: 결제 쿠폰 데이터 삽입
+        DB-->>PCR: 결제 쿠폰 정보
         deactivate PCR
 
-        S->>UCR: updateStatus(userCouponId, 'USED')
+        S->>UCR: 쿠폰 사용 처리
         activate UCR
-        UCR->>DB: UPDATE USER_COUPON<br/>SET status = 'USED',<br/>used_at = CURRENT_TIMESTAMP<br/>WHERE id = ?
-        DB-->>UCR: updated count
+        UCR->>DB: 쿠폰 상태 변경
+        DB-->>UCR: 업데이트 결과
         deactivate UCR
     end
 
-    S->>BR: deductBalance(userId, finalAmount)
+    S->>BR: 잔액 차감
     activate BR
-    BR->>DB: UPDATE BALANCE<br/>SET amount = amount - ?<br/>WHERE user_id = ?
-    DB-->>BR: updated count
+    BR->>DB: 잔액 감소
+    DB-->>BR: 업데이트 결과
     deactivate BR
 
-    S->>CR: deleteByUserId(userId)
+    S->>CR: 장바구니 비우기
     activate CR
-    CR->>DB: DELETE FROM CART<br/>WHERE user_id = ?
-    DB-->>CR: deleted count
+    CR->>DB: 장바구니 데이터 삭제
+    DB-->>CR: 삭제 결과
     deactivate CR
 
     Note over S: 트랜잭션 커밋
 
     Note over S: 외부 시스템 전송 (비동기)
 
-    S->>ES: sendOrderData(order)
+    S->>ES: 주문 데이터 전송
     activate ES
     Note over ES: 비동기 처리<br/>(실패해도 주문은 정상 처리)
     deactivate ES
@@ -537,20 +537,20 @@ sequenceDiagram
     participant OR as OrderRepository
     participant DB as Database
 
-    C->>S: getOrderList(userId, page, size)
+    C->>S: 주문 목록 조회 요청
     activate S
 
-    S->>OR: findByUserId(userId, pageable)
+    S->>OR: 주문 목록 조회
     activate OR
-    OR->>DB: SELECT * FROM `ORDER`<br/>WHERE user_id = ?<br/>ORDER BY created_at DESC<br/>LIMIT ? OFFSET ?
-    DB-->>OR: List<Order> + totalCount
+    OR->>DB: 주문 데이터 조회
+    DB-->>OR: 주문 목록 + 총 개수
     deactivate OR
 
     alt Orders is empty
         S-->>C: PageResponse<OrderResponse> (empty)
     end
 
-    Note over S: Order 응답 데이터 매핑
+    Note over S: 응답 데이터 매핑
 
     S-->>C: PageResponse<OrderResponse>
     deactivate S
@@ -570,48 +570,48 @@ sequenceDiagram
     participant PayR as PaymentRepository
     participant DB as Database
 
-    C->>S: getOrderDetail(userId, orderId)
+    C->>S: 주문 상세 조회 요청
     activate S
 
-    S->>OR: findByIdAndUserId(orderId, userId)
+    S->>OR: 주문 정보 조회
     activate OR
-    OR->>DB: SELECT * FROM `ORDER`<br/>WHERE id = ?<br/>AND user_id = ?
-    DB-->>OR: Optional<Order>
+    OR->>DB: 주문 데이터 조회
+    DB-->>OR: 주문 정보
     deactivate OR
 
     alt Order not found
         S-->>C: throw OrderNotFoundException
     end
 
-    S->>OIR: findByOrderId(orderId)
+    S->>OIR: 주문 항목 조회
     activate OIR
-    OIR->>DB: SELECT * FROM ORDER_ITEM<br/>WHERE order_id = ?
-    DB-->>OIR: List<OrderItem>
+    OIR->>DB: 주문 항목 데이터 조회
+    DB-->>OIR: 주문 항목 목록
     deactivate OIR
 
-    Note over S: productOptionIds 추출
+    Note over S: 상품 옵션 ID 추출
 
-    S->>POR: findAllById(productOptionIds)
+    S->>POR: 상품 옵션 조회
     activate POR
-    POR->>DB: SELECT * FROM PRODUCT_OPTION<br/>WHERE id IN (?)
-    DB-->>POR: List<ProductOption>
+    POR->>DB: 옵션 데이터 조회
+    DB-->>POR: 옵션 목록
     deactivate POR
 
-    Note over S: productIds 추출
+    Note over S: 상품 ID 추출
 
-    S->>PR: findAllById(productIds)
+    S->>PR: 상품 정보 조회
     activate PR
-    PR->>DB: SELECT * FROM PRODUCT<br/>WHERE id IN (?)
-    DB-->>PR: List<Product>
+    PR->>DB: 상품 데이터 조회
+    DB-->>PR: 상품 목록
     deactivate PR
 
-    S->>PayR: findByOrderId(orderId)
+    S->>PayR: 결제 정보 조회
     activate PayR
-    PayR->>DB: SELECT * FROM PAYMENT<br/>WHERE order_id = ?
-    DB-->>PayR: Payment
+    PayR->>DB: 결제 데이터 조회
+    DB-->>PayR: 결제 정보
     deactivate PayR
 
-    Note over S: Order + OrderItems + Payment 매핑
+    Note over S: 주문 + 주문항목 + 결제정보 매핑
 
     S-->>C: OrderDetailResponse
     deactivate S
@@ -630,22 +630,22 @@ sequenceDiagram
     participant CR as CouponRepository
     participant DB as Database
 
-    C->>S: getAvailableCoupons()
+    C->>S: 발급 가능 쿠폰 조회 요청
     activate S
 
     Note over S: 현재 시각 기준<br/>발급 가능 쿠폰 조회
 
-    S->>CR: findAvailableCoupons(currentTime)
+    S->>CR: 발급 가능 쿠폰 조회
     activate CR
-    CR->>DB: SELECT * FROM COUPON<br/>WHERE start_at <= ?<br/>AND end_at > ?<br/>AND issued_quantity < total_quantity<br/>ORDER BY created_at DESC
-    DB-->>CR: List<Coupon>
+    CR->>DB: 쿠폰 데이터 조회
+    DB-->>CR: 쿠폰 목록
     deactivate CR
 
     alt Coupons is empty
         S-->>C: List<CouponResponse> (empty)
     end
 
-    Note over S: 남은 수량 계산<br/>(total_quantity - issued_quantity)
+    Note over S: 남은 수량 계산
 
     S-->>C: List<CouponResponse>
     deactivate S
@@ -662,15 +662,15 @@ sequenceDiagram
     participant UCR as UserCouponRepository
     participant DB as Database
 
-    C->>S: issueCoupon(userId, couponId)
+    C->>S: 쿠폰 발급 요청
     activate S
 
     Note over S: 트랜잭션 시작
 
-    S->>CR: findByIdWithLock(couponId)
+    S->>CR: 쿠폰 조회 (락)
     activate CR
-    CR->>DB: SELECT * FROM COUPON<br/>WHERE id = ?<br/>FOR UPDATE
-    DB-->>CR: Coupon
+    CR->>DB: 쿠폰 데이터 조회 및 잠금
+    DB-->>CR: 쿠폰 정보
     deactivate CR
 
     alt Coupon not found
@@ -687,26 +687,26 @@ sequenceDiagram
         S-->>C: throw CouponSoldOutException
     end
 
-    S->>UCR: existsByUserIdAndCouponId(userId, couponId)
+    S->>UCR: 중복 발급 확인
     activate UCR
-    UCR->>DB: SELECT EXISTS(SELECT 1 FROM USER_COUPON<br/>WHERE user_id = ?<br/>AND coupon_id = ?)
-    DB-->>UCR: boolean
+    UCR->>DB: 사용자 쿠폰 존재 여부 확인
+    DB-->>UCR: 존재 여부
     deactivate UCR
 
     alt User already has this coupon
         S-->>C: throw CouponAlreadyIssuedException
     end
 
-    S->>UCR: save(userCoupon)
+    S->>UCR: 사용자 쿠폰 생성
     activate UCR
-    UCR->>DB: INSERT INTO USER_COUPON<br/>(user_id, coupon_id, status, expired_at)<br/>VALUES (?, ?, 'AVAILABLE', ?)
-    DB-->>UCR: UserCoupon
+    UCR->>DB: 사용자 쿠폰 데이터 삽입
+    DB-->>UCR: 사용자 쿠폰 정보
     deactivate UCR
 
-    S->>CR: increaseIssuedQuantity(couponId)
+    S->>CR: 발급 수량 증가
     activate CR
-    CR->>DB: UPDATE COUPON<br/>SET issued_quantity = issued_quantity + 1<br/>WHERE id = ?
-    DB-->>CR: updated count
+    CR->>DB: 발급 수량 증가
+    DB-->>CR: 업데이트 결과
     deactivate CR
 
     Note over S: 트랜잭션 커밋
@@ -726,28 +726,28 @@ sequenceDiagram
     participant CR as CouponRepository
     participant DB as Database
 
-    C->>S: getUserCoupons(userId)
+    C->>S: 보유 쿠폰 조회 요청
     activate S
 
-    S->>UCR: findByUserId(userId)
+    S->>UCR: 사용자 쿠폰 조회
     activate UCR
-    UCR->>DB: SELECT * FROM USER_COUPON<br/>WHERE user_id = ?<br/>ORDER BY issued_at DESC
-    DB-->>UCR: List<UserCoupon>
+    UCR->>DB: 사용자 쿠폰 데이터 조회
+    DB-->>UCR: 사용자 쿠폰 목록
     deactivate UCR
 
     alt UserCoupons is empty
         S-->>C: List<UserCouponResponse> (empty)
     end
 
-    Note over S: couponIds 추출
+    Note over S: 쿠폰 ID 추출
 
-    S->>CR: findAllById(couponIds)
+    S->>CR: 쿠폰 정보 조회
     activate CR
-    CR->>DB: SELECT * FROM COUPON<br/>WHERE id IN (?)
-    DB-->>CR: List<Coupon>
+    CR->>DB: 쿠폰 데이터 조회
+    DB-->>CR: 쿠폰 목록
     deactivate CR
 
-    Note over S: UserCoupon + Coupon 매핑
+    Note over S: 사용자 쿠폰 + 쿠폰 정보 매핑
 
     S-->>C: List<UserCouponResponse>
     deactivate S
@@ -764,32 +764,32 @@ sequenceDiagram
     participant CR as CouponRepository
     participant DB as Database
 
-    C->>S: getAvailableUserCoupons(userId, orderAmount)
+    C->>S: 사용 가능 쿠폰 조회 요청
     activate S
 
     Note over S: 현재 시각 기준
 
-    S->>UCR: findByUserIdAndNotExpired(userId, currentTime)
+    S->>UCR: 미만료 사용자 쿠폰 조회
     activate UCR
-    UCR->>DB: SELECT * FROM USER_COUPON<br/>WHERE user_id = ?<br/>AND status != 'USED'<br/>AND expired_at > ?<br/>ORDER BY issued_at DESC
-    DB-->>UCR: List<UserCoupon>
+    UCR->>DB: 사용자 쿠폰 데이터 조회
+    DB-->>UCR: 사용자 쿠폰 목록
     deactivate UCR
 
     alt UserCoupons is empty
         S-->>C: List<UserCouponResponse> (empty)
     end
 
-    Note over S: couponIds 추출
+    Note over S: 쿠폰 ID 추출
 
-    S->>CR: findAllById(couponIds)
+    S->>CR: 쿠폰 정보 조회
     activate CR
-    CR->>DB: SELECT * FROM COUPON<br/>WHERE id IN (?)
-    DB-->>CR: List<Coupon>
+    CR->>DB: 쿠폰 데이터 조회
+    DB-->>CR: 쿠폰 목록
     deactivate CR
 
     Note over S: 쿠폰 사용 가능 여부 필터링<br/>(최소 주문 금액 충족)
 
-    Note over S: UserCoupon + Coupon 매핑<br/>+ 할인 금액 계산
+    Note over S: 사용자 쿠폰 + 쿠폰 정보 매핑<br/>+ 할인 금액 계산
 
     S-->>C: List<UserCouponResponse>
     deactivate S
@@ -808,13 +808,13 @@ sequenceDiagram
     participant BR as BalanceRepository
     participant DB as Database
 
-    C->>S: getBalance(userId)
+    C->>S: 잔액 조회 요청
     activate S
 
-    S->>BR: findByUserId(userId)
+    S->>BR: 잔액 조회
     activate BR
-    BR->>DB: SELECT * FROM BALANCE<br/>WHERE user_id = ?
-    DB-->>BR: Optional<Balance>
+    BR->>DB: 잔액 데이터 조회
+    DB-->>BR: 잔액 정보
     deactivate BR
 
     alt Balance not found
@@ -835,32 +835,32 @@ sequenceDiagram
     participant BR as BalanceRepository
     participant DB as Database
 
-    C->>S: chargeBalance(userId, amount)
+    C->>S: 잔액 충전 요청
     activate S
 
-    Note over S: 충전 금액 유효성 검증<br/>(amount > 0)
+    Note over S: 충전 금액 유효성 검증
 
     Note over S: 트랜잭션 시작
 
-    S->>BR: findByUserIdWithLock(userId)
+    S->>BR: 잔액 조회 (락)
     activate BR
-    BR->>DB: SELECT * FROM BALANCE<br/>WHERE user_id = ?<br/>FOR UPDATE
-    DB-->>BR: Optional<Balance>
+    BR->>DB: 잔액 데이터 조회 및 잠금
+    DB-->>BR: 잔액 정보
     deactivate BR
 
     alt Balance not found
         Note over S: 새로운 잔액 생성
-        S->>BR: save(balance)
+        S->>BR: 잔액 생성
         activate BR
-        BR->>DB: INSERT INTO BALANCE<br/>(user_id, amount)<br/>VALUES (?, ?)
-        DB-->>BR: Balance
+        BR->>DB: 잔액 데이터 삽입
+        DB-->>BR: 잔액 정보
         deactivate BR
     else Balance exists
         Note over S: 기존 잔액에 충전
-        S->>BR: updateAmount(userId, amount)
+        S->>BR: 잔액 증가
         activate BR
-        BR->>DB: UPDATE BALANCE<br/>SET amount = amount + ?<br/>WHERE user_id = ?
-        DB-->>BR: updated count
+        BR->>DB: 잔액 증가
+        DB-->>BR: 업데이트 결과
         deactivate BR
     end
 
