@@ -57,7 +57,7 @@ erDiagram
         int id PK "결제 ID"
         int order_id FK "주문 ID"
         int amount "결제금액"
-        varchar method "결제 수단 (BALANCE, CARD, VIRTUAL_ACCOUNT, KAKAO_PAY)"
+        varchar method "결제 수단 (POINT)"
         varchar status "결제 상태 (PENDING, COMPLETED, FAILED, CANCELLED)"
         varchar transaction_id "PG사 트랜잭션 ID"
         datetime paid_at "결제 완료일시"
@@ -98,10 +98,10 @@ erDiagram
         datetime expired_at "만료일시"
     }
 
-    BALANCE {
-        int id PK "잔액 ID"
+    POINT {
+        int id PK "포인트 ID"
         int user_id "사용자 ID (unique)"
-        int amount "잔액"
+        int amount "포인트"
         datetime created_at "생성일시"
         datetime updated_at "수정일시"
     }
@@ -191,7 +191,7 @@ CREATE TABLE PAYMENT (
     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '결제 ID',
     order_id INT NOT NULL COMMENT '주문 ID',
     amount INT NOT NULL COMMENT '결제금액',
-    method VARCHAR(20) NOT NULL COMMENT '결제 수단 (BALANCE, CARD, VIRTUAL_ACCOUNT, KAKAO_PAY)',
+    method VARCHAR(20) NOT NULL COMMENT '결제 수단 (POINT)',
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '결제 상태 (PENDING, COMPLETED, FAILED, CANCELLED)',
     transaction_id VARCHAR(255) COMMENT 'PG사 트랜잭션 ID',
     paid_at DATETIME COMMENT '결제 완료일시',
@@ -245,14 +245,14 @@ CREATE TABLE PAYMENT_COUPON (
     INDEX idx_user_coupon_id (user_coupon_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='결제 쿠폰';
 
--- BALANCE 테이블
-CREATE TABLE BALANCE (
-    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '잔액 ID',
+-- POINT 테이블
+CREATE TABLE POINT (
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '포인트 ID',
     user_id INT NOT NULL COMMENT '사용자 ID',
-    amount INT NOT NULL DEFAULT 0 COMMENT '잔액',
+    amount INT NOT NULL DEFAULT 0 COMMENT '포인트',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
     UNIQUE KEY uk_user_id (user_id),
     INDEX idx_user_id (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='사용자 잔액';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='사용자 포인트';
 ```

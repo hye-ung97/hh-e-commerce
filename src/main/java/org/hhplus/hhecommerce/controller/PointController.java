@@ -7,71 +7,71 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.hhplus.hhecommerce.dto.balance.*;
+import org.hhplus.hhecommerce.dto.point.*;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Tag(name = "Balance", description = "잔액 관리 API")
+@Tag(name = "Point", description = "포인트 관리 API")
 @RestController
-@RequestMapping("/api/balance")
-public class BalanceController {
+@RequestMapping("/api/point")
+public class PointController {
 
-    private static final Map<Long, Map<String, Object>> BALANCES = new ConcurrentHashMap<>(
+    private static final Map<Long, Map<String, Object>> POINTS = new ConcurrentHashMap<>(
         Map.of(
-            1L, createBalance(1L, 1L, 1000000),
-            2L, createBalance(2L, 2L, 500000),
-            3L, createBalance(3L, 3L, 2000000)
+            1L, createPoint(1L, 1L, 1000000),
+            2L, createPoint(2L, 2L, 500000),
+            3L, createPoint(3L, 3L, 2000000)
         )
     );
 
-    private static Map<String, Object> createBalance(Long id, Long userId, int amount) {
-        Map<String, Object> balance = new HashMap<>();
-        balance.put("id", id);
-        balance.put("userId", userId);
-        balance.put("amount", amount);
-        balance.put("createdAt", LocalDateTime.now().minusDays(30));
-        balance.put("updatedAt", LocalDateTime.now().minusDays(1));
-        return balance;
+    private static Map<String, Object> createPoint(Long id, Long userId, int amount) {
+        Map<String, Object> point = new HashMap<>();
+        point.put("id", id);
+        point.put("userId", userId);
+        point.put("amount", amount);
+        point.put("createdAt", LocalDateTime.now().minusDays(30));
+        point.put("updatedAt", LocalDateTime.now().minusDays(1));
+        return point;
     }
 
-    @Operation(summary = "잔액 조회", description = "사용자의 현재 잔액을 조회합니다.")
+    @Operation(summary = "포인트 조회", description = "사용자의 현재 포인트를 조회합니다.")
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
-            description = "잔액 조회 성공",
+            description = "포인트 조회 성공",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = BalanceResponse.class)
+                schema = @Schema(implementation = PointResponse.class)
             )
         ),
         @ApiResponse(responseCode = "400", description = "잘못된 요청")
     })
     @GetMapping
-    public BalanceResponse getBalance(
+    public PointResponse getPoint(
         @Parameter(description = "사용자 ID", example = "1")
         @RequestParam(defaultValue = "1") Long userId
     ) {
-        Map<String, Object> balance = BALANCES.values().stream()
-            .filter(b -> userId.equals(b.get("userId")))
+        Map<String, Object> point = POINTS.values().stream()
+            .filter(p -> userId.equals(p.get("userId")))
             .findFirst()
             .orElse(null);
 
-        if (balance == null) {
-            throw new RuntimeException("Balance not found for user: " + userId);
+        if (point == null) {
+            throw new RuntimeException("Point not found for user: " + userId);
         }
 
-        return BalanceResponse.builder()
-            .id((Long) balance.get("id"))
-            .userId((Long) balance.get("userId"))
-            .amount((Integer) balance.get("amount"))
-            .createdAt((LocalDateTime) balance.get("createdAt"))
-            .updatedAt((LocalDateTime) balance.get("updatedAt"))
+        return PointResponse.builder()
+            .id((Long) point.get("id"))
+            .userId((Long) point.get("userId"))
+            .amount((Integer) point.get("amount"))
+            .createdAt((LocalDateTime) point.get("createdAt"))
+            .updatedAt((LocalDateTime) point.get("updatedAt"))
             .build();
     }
 
-    @Operation(summary = "잔액 충전", description = "사용자의 잔액을 충전합니다.")
+    @Operation(summary = "포인트 충전", description = "사용자의 포인트를 충전합니다.")
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
@@ -84,7 +84,7 @@ public class BalanceController {
         @ApiResponse(responseCode = "400", description = "잘못된 요청 (충전 금액이 0 이하이거나 1천만원 초과)")
     })
     @PostMapping("/charge")
-    public ChargeResponse chargeBalance(
+    public ChargeResponse chargePoint(
         @Parameter(description = "사용자 ID", example = "1")
         @RequestParam(defaultValue = "1") Long userId,
         @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -105,47 +105,47 @@ public class BalanceController {
             throw new RuntimeException("Maximum charge amount is 10,000,000 won");
         }
 
-        // 기존 잔액 조회
-        Map<String, Object> balance = BALANCES.values().stream()
-            .filter(b -> userId.equals(b.get("userId")))
+        // 기존 포인트 조회
+        Map<String, Object> point = POINTS.values().stream()
+            .filter(p -> userId.equals(p.get("userId")))
             .findFirst()
             .orElse(null);
 
-        if (balance == null) {
-            Long newId = BALANCES.keySet().stream()
+        if (point == null) {
+            Long newId = POINTS.keySet().stream()
                 .max(Long::compareTo)
                 .orElse(0L) + 1;
 
-            balance = new HashMap<>();
-            balance.put("id", newId);
-            balance.put("userId", userId);
-            balance.put("amount", amount);
-            balance.put("createdAt", LocalDateTime.now());
-            balance.put("updatedAt", LocalDateTime.now());
+            point = new HashMap<>();
+            point.put("id", newId);
+            point.put("userId", userId);
+            point.put("amount", amount);
+            point.put("createdAt", LocalDateTime.now());
+            point.put("updatedAt", LocalDateTime.now());
 
-            BALANCES.put(newId, balance);
+            POINTS.put(newId, point);
         } else {
-            synchronized (balance) {
-                int currentAmount = (Integer) balance.get("amount");
+            synchronized (point) {
+                int currentAmount = (Integer) point.get("amount");
                 int newAmount = currentAmount + amount;
 
-                balance.put("amount", newAmount);
-                balance.put("updatedAt", LocalDateTime.now());
+                point.put("amount", newAmount);
+                point.put("updatedAt", LocalDateTime.now());
             }
         }
 
         return ChargeResponse.builder()
-            .id((Long) balance.get("id"))
-            .userId((Long) balance.get("userId"))
-            .amount((Integer) balance.get("amount"))
-            .createdAt((LocalDateTime) balance.get("createdAt"))
-            .updatedAt((LocalDateTime) balance.get("updatedAt"))
+            .id((Long) point.get("id"))
+            .userId((Long) point.get("userId"))
+            .amount((Integer) point.get("amount"))
+            .createdAt((LocalDateTime) point.get("createdAt"))
+            .updatedAt((LocalDateTime) point.get("updatedAt"))
             .chargedAmount(amount)
-            .message("Balance charged successfully")
+            .message("Point charged successfully")
             .build();
     }
 
-    @Operation(summary = "잔액 차감", description = "사용자의 잔액을 차감합니다. (테스트용 엔드포인트)")
+    @Operation(summary = "포인트 차감", description = "사용자의 포인트를 차감합니다. (테스트용 엔드포인트)")
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
@@ -155,10 +155,10 @@ public class BalanceController {
                 schema = @Schema(implementation = DeductResponse.class)
             )
         ),
-        @ApiResponse(responseCode = "400", description = "잔액 부족 또는 잘못된 요청")
+        @ApiResponse(responseCode = "400", description = "포인트 부족 또는 잘못된 요청")
     })
     @PostMapping("/deduct")
-    public DeductResponse deductBalance(
+    public DeductResponse deductPoint(
         @Parameter(description = "사용자 ID", example = "1")
         @RequestParam(defaultValue = "1") Long userId,
         @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -175,56 +175,56 @@ public class BalanceController {
             throw new RuntimeException("Deduct amount must be greater than 0");
         }
 
-        Map<String, Object> balance = BALANCES.values().stream()
-            .filter(b -> userId.equals(b.get("userId")))
+        Map<String, Object> point = POINTS.values().stream()
+            .filter(p -> userId.equals(p.get("userId")))
             .findFirst()
             .orElse(null);
 
-        if (balance == null) {
-            throw new RuntimeException("Balance not found for user: " + userId);
+        if (point == null) {
+            throw new RuntimeException("Point not found for user: " + userId);
         }
 
-        synchronized (balance) {
-            int currentAmount = (Integer) balance.get("amount");
+        synchronized (point) {
+            int currentAmount = (Integer) point.get("amount");
 
             if (currentAmount < amount) {
-                throw new RuntimeException("Insufficient balance. Current: " + currentAmount + ", Required: " + amount);
+                throw new RuntimeException("Insufficient point. Current: " + currentAmount + ", Required: " + amount);
             }
 
             int newAmount = currentAmount - amount;
-            balance.put("amount", newAmount);
-            balance.put("updatedAt", LocalDateTime.now());
+            point.put("amount", newAmount);
+            point.put("updatedAt", LocalDateTime.now());
         }
 
         return DeductResponse.builder()
-            .id((Long) balance.get("id"))
-            .userId((Long) balance.get("userId"))
-            .amount((Integer) balance.get("amount"))
-            .createdAt((LocalDateTime) balance.get("createdAt"))
-            .updatedAt((LocalDateTime) balance.get("updatedAt"))
+            .id((Long) point.get("id"))
+            .userId((Long) point.get("userId"))
+            .amount((Integer) point.get("amount"))
+            .createdAt((LocalDateTime) point.get("createdAt"))
+            .updatedAt((LocalDateTime) point.get("updatedAt"))
             .deductedAmount(amount)
-            .message("Balance deducted successfully")
+            .message("Point deducted successfully")
             .build();
     }
 
-    @Operation(summary = "잔액 거래 내역 조회", description = "사용자의 잔액 거래 내역을 조회합니다.")
+    @Operation(summary = "포인트 거래 내역 조회", description = "사용자의 포인트 거래 내역을 조회합니다.")
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
             description = "조회 성공",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = BalanceHistoryResponse.class)
+                schema = @Schema(implementation = PointHistoryResponse.class)
             )
         )
     })
     @GetMapping("/history")
-    public BalanceHistoryResponse getBalanceHistory(
+    public PointHistoryResponse getPointHistory(
         @Parameter(description = "사용자 ID", example = "1")
         @RequestParam(defaultValue = "1") Long userId
     ) {
-        List<BalanceHistoryResponse.BalanceTransaction> history = List.of(
-            new BalanceHistoryResponse.BalanceTransaction(
+        List<PointHistoryResponse.PointTransaction> history = List.of(
+            new PointHistoryResponse.PointTransaction(
                 1L,
                 userId,
                 "CHARGE",
@@ -233,7 +233,7 @@ public class BalanceController {
                 "초기 충전",
                 LocalDateTime.now().minusDays(30)
             ),
-            new BalanceHistoryResponse.BalanceTransaction(
+            new PointHistoryResponse.PointTransaction(
                 2L,
                 userId,
                 "DEDUCT",
@@ -242,7 +242,7 @@ public class BalanceController {
                 "주문 결제",
                 LocalDateTime.now().minusDays(10)
             ),
-            new BalanceHistoryResponse.BalanceTransaction(
+            new PointHistoryResponse.PointTransaction(
                 3L,
                 userId,
                 "CHARGE",
@@ -253,14 +253,14 @@ public class BalanceController {
             )
         );
 
-        Map<String, Object> balance = BALANCES.values().stream()
-            .filter(b -> userId.equals(b.get("userId")))
+        Map<String, Object> point = POINTS.values().stream()
+            .filter(p -> userId.equals(p.get("userId")))
             .findFirst()
             .orElse(null);
 
-        return BalanceHistoryResponse.builder()
+        return PointHistoryResponse.builder()
             .history(history)
-            .currentBalance(balance != null ? (Integer) balance.get("amount") : 0)
+            .currentPoint(point != null ? (Integer) point.get("amount") : 0)
             .totalCount(history.size())
             .build();
     }

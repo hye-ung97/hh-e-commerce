@@ -66,15 +66,15 @@
 - **Endpoint**: `GET /api/users/coupons/available`
 - **Description**: 현재 주문에 사용 가능한 쿠폰 목록을 조회합니다.
 
-### 5. 잔액 API
+### 5. 포인트 API
 
-#### 5.1 잔액 조회
-- **Endpoint**: `GET /api/balance`
-- **Description**: 사용자의 현재 잔액을 조회합니다.
+#### 5.1 포인트 조회
+- **Endpoint**: `GET /api/point`
+- **Description**: 사용자의 현재 포인트를 조회합니다.
 
-#### 5.2 잔액 충전
-- **Endpoint**: `POST /api/balance/charge`
-- **Description**: 사용자의 잔액을 충전합니다.
+#### 5.2 포인트 충전
+- **Endpoint**: `POST /api/point/charge`
+- **Description**: 사용자의 포인트를 충전합니다.
 
 
 ---
@@ -401,7 +401,7 @@ sequenceDiagram
     participant OIR as OrderItemRepository
     participant PayR as PaymentRepository
     participant PCR as PaymentCouponRepository
-    participant BR as BalanceRepository
+    participant PR as PointRepository
     participant ES as ExternalService
     participant DB as Database
 
@@ -452,14 +452,14 @@ sequenceDiagram
 
     Note over S: 최종 결제 금액 계산
 
-    S->>BR: 잔액 조회 (락)
-    activate BR
-    BR->>DB: 잔액 데이터 조회 및 잠금
-    DB-->>BR: 잔액 정보
-    deactivate BR
+    S->>PR: 포인트 조회 (락)
+    activate PR
+    PR->>DB: 포인트 데이터 조회 및 잠금
+    DB-->>PR: 포인트 정보
+    deactivate PR
 
-    alt Balance is insufficient
-        S-->>C: throw InsufficientBalanceException
+    alt Point is insufficient
+        S-->>C: throw InsufficientPointException
     end
 
     S->>OR: 주문 생성
@@ -502,11 +502,11 @@ sequenceDiagram
         deactivate UCR
     end
 
-    S->>BR: 잔액 차감
-    activate BR
-    BR->>DB: 잔액 감소
-    DB-->>BR: 업데이트 결과
-    deactivate BR
+    S->>PR: 포인트 차감
+    activate PR
+    PR->>DB: 포인트 감소
+    DB-->>PR: 업데이트 결과
+    deactivate PR
 
     S->>CR: 장바구니 비우기
     activate CR
@@ -796,77 +796,77 @@ sequenceDiagram
 ```
 
 
-### 5. 잔액 API
+### 5. 포인트 API
 
-#### 5.1 잔액 조회
+#### 5.1 포인트 조회
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as BalanceController
-    participant S as BalanceService
-    participant BR as BalanceRepository
+    participant C as PointController
+    participant S as PointService
+    participant PR as PointRepository
     participant DB as Database
 
-    C->>S: 잔액 조회 요청
+    C->>S: 포인트 조회 요청
     activate S
 
-    S->>BR: 잔액 조회
-    activate BR
-    BR->>DB: 잔액 데이터 조회
-    DB-->>BR: 잔액 정보
-    deactivate BR
+    S->>PR: 포인트 조회
+    activate PR
+    PR->>DB: 포인트 데이터 조회
+    DB-->>PR: 포인트 정보
+    deactivate PR
 
-    alt Balance not found
-        S-->>C: throw BalanceNotFoundException
+    alt Point not found
+        S-->>C: throw PointNotFoundException
     end
 
-    S-->>C: BalanceResponse
+    S-->>C: PointResponse
     deactivate S
 ```
 
-#### 5.2 잔액 충전
+#### 5.2 포인트 충전
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as BalanceController
-    participant S as BalanceService
-    participant BR as BalanceRepository
+    participant C as PointController
+    participant S as PointService
+    participant PR as PointRepository
     participant DB as Database
 
-    C->>S: 잔액 충전 요청
+    C->>S: 포인트 충전 요청
     activate S
 
     Note over S: 충전 금액 유효성 검증
 
     Note over S: 트랜잭션 시작
 
-    S->>BR: 잔액 조회 (락)
-    activate BR
-    BR->>DB: 잔액 데이터 조회 및 잠금
-    DB-->>BR: 잔액 정보
-    deactivate BR
+    S->>PR: 포인트 조회 (락)
+    activate PR
+    PR->>DB: 포인트 데이터 조회 및 잠금
+    DB-->>PR: 포인트 정보
+    deactivate PR
 
-    alt Balance not found
-        Note over S: 새로운 잔액 생성
-        S->>BR: 잔액 생성
-        activate BR
-        BR->>DB: 잔액 데이터 삽입
-        DB-->>BR: 잔액 정보
-        deactivate BR
-    else Balance exists
-        Note over S: 기존 잔액에 충전
-        S->>BR: 잔액 증가
-        activate BR
-        BR->>DB: 잔액 증가
-        DB-->>BR: 업데이트 결과
-        deactivate BR
+    alt Point not found
+        Note over S: 새로운 포인트 생성
+        S->>PR: 포인트 생성
+        activate PR
+        PR->>DB: 포인트 데이터 삽입
+        DB-->>PR: 포인트 정보
+        deactivate PR
+    else Point exists
+        Note over S: 기존 포인트에 충전
+        S->>PR: 포인트 증가
+        activate PR
+        PR->>DB: 포인트 증가
+        DB-->>PR: 업데이트 결과
+        deactivate PR
     end
 
     Note over S: 트랜잭션 커밋
 
-    S-->>C: BalanceResponse
+    S-->>C: PointResponse
     deactivate S
 ```
 

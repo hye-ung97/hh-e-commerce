@@ -1,4 +1,4 @@
-package org.hhplus.hhecommerce.dto.balance;
+package org.hhplus.hhecommerce.dto.point;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -12,16 +12,16 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Schema(description = "잔액 조회 응답")
-public class BalanceResponse {
+@Schema(description = "포인트 조회 응답")
+public class PointResponse {
 
-    @Schema(description = "잔액 ID", example = "1")
+    @Schema(description = "포인트 ID", example = "1")
     private Long id;
 
     @Schema(description = "사용자 ID", example = "1")
     private Long userId;
 
-    @Schema(description = "잔액 (원)", example = "1000000")
+    @Schema(description = "포인트 (원)", example = "1000000")
     private Integer amount;
 
     @Schema(description = "생성 일시", example = "2024-09-28T13:51:32.123")

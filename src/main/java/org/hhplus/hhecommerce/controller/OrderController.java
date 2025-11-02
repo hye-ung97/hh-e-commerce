@@ -155,7 +155,7 @@ public class OrderController {
         payment.put("id", orderId);
         payment.put("orderId", orderId);
         payment.put("amount", finalAmount);
-        payment.put("method", "BALANCE");
+        payment.put("method", "POINT");
         payment.put("status", "COMPLETED");
         payment.put("createdAt", now);
 
