@@ -123,7 +123,7 @@ CREATE TABLE PRODUCT (
     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '상품 ID',
     name VARCHAR(255) NOT NULL COMMENT '상품명',
     description TEXT COMMENT '상품 설명',
-    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' COMMENT '상품 상태 (ACTIVE, INACTIVE, SOLD_OUT)',
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' COMMENT '상품 상태 (ACTIVE, INACTIVE)',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
     INDEX idx_status (status),
@@ -140,7 +140,6 @@ CREATE TABLE PRODUCT_OPTION (
     stock INT NOT NULL DEFAULT 0 COMMENT '재고수량',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-    FOREIGN KEY (product_id) REFERENCES PRODUCT(id) ON DELETE CASCADE,
     INDEX idx_product_id (product_id),
     INDEX idx_stock (stock)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='상품 옵션';
@@ -153,7 +152,6 @@ CREATE TABLE CART (
     quantity INT NOT NULL DEFAULT 1 COMMENT '수량',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-    FOREIGN KEY (product_option_id) REFERENCES PRODUCT_OPTION(id) ON DELETE CASCADE,
     UNIQUE KEY uk_user_product_option (user_id, product_option_id),
     INDEX idx_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='장바구니';
@@ -182,8 +180,6 @@ CREATE TABLE ORDER_ITEM (
     status VARCHAR(20) NOT NULL DEFAULT 'ORDERED' COMMENT '주문 상태 (ORDERED, CANCELLED)',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-    FOREIGN KEY (order_id) REFERENCES `ORDER`(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_option_id) REFERENCES PRODUCT_OPTION(id),
     INDEX idx_order_id (order_id),
     INDEX idx_product_option_id (product_option_id),
     INDEX idx_status (status),
@@ -201,7 +197,6 @@ CREATE TABLE PAYMENT (
     paid_at DATETIME COMMENT '결제 완료일시',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-    FOREIGN KEY (order_id) REFERENCES `ORDER`(id) ON DELETE CASCADE,
     INDEX idx_order_id (order_id),
     INDEX idx_status (status),
     INDEX idx_transaction_id (transaction_id)
@@ -233,7 +228,6 @@ CREATE TABLE USER_COUPON (
     issued_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '발급일시',
     used_at DATETIME COMMENT '사용일시',
     expired_at DATETIME NOT NULL COMMENT '만료일시',
-    FOREIGN KEY (coupon_id) REFERENCES COUPON(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
     INDEX idx_coupon_id (coupon_id),
     INDEX idx_status (status),
@@ -247,8 +241,6 @@ CREATE TABLE PAYMENT_COUPON (
     user_coupon_id INT NOT NULL COMMENT '사용자 쿠폰 ID',
     discount_amount INT NOT NULL COMMENT '실제 할인된 금액',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-    FOREIGN KEY (payment_id) REFERENCES PAYMENT(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_coupon_id) REFERENCES USER_COUPON(id),
     INDEX idx_payment_id (payment_id),
     INDEX idx_user_coupon_id (user_coupon_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='결제 쿠폰';
