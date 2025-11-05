@@ -6,7 +6,7 @@ erDiagram
         int id PK "상품 ID"
         varchar name "상품명"
         text description "상품 설명"
-        varchar status "상품 상태 (ACTIVE, INACTIVE, SOLD_OUT)"
+        varchar status "상품 상태 (ACTIVE, INACTIVE)"
         datetime created_at "생성일시"
         datetime updated_at "수정일시"
     }
@@ -37,6 +37,8 @@ erDiagram
         int total_amount "총 주문금액"
         int discount_amount "할인금액"
         int final_amount "최종 결제금액"
+        varchar status "주문 상태 (PENDING, CONFIRMED, COMPLETED, CANCELLED)"
+        datetime ordered_at "주문일시"
         datetime created_at "생성일시"
         datetime updated_at "수정일시"
     }
@@ -163,9 +165,12 @@ CREATE TABLE `ORDER` (
     total_amount INT NOT NULL COMMENT '총 주문금액',
     discount_amount INT NOT NULL DEFAULT 0 COMMENT '할인금액',
     final_amount INT NOT NULL COMMENT '최종 결제금액',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '주문 상태 (PENDING, CONFIRMED, COMPLETED, CANCELLED)',
+    ordered_at DATETIME NOT NULL COMMENT '주문일시',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
     INDEX idx_user_id (user_id),
+    INDEX idx_status (status),
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='주문';
 
