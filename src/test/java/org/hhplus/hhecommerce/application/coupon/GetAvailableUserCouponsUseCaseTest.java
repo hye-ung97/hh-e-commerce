@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class GetAvailableUserCouponsUseCaseTest {
 
@@ -51,13 +51,11 @@ class GetAvailableUserCouponsUseCaseTest {
 
         // Then
         AvailableUserCouponListResponse.AvailableUserCouponInfo couponInfo = response.coupons().get(0);
-        assertAll("사용 가능한 쿠폰 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(1, response.coupons().size()), // coupon1만 사용 가능
-            () -> assertEquals(20000, response.orderAmount()),
-            () -> assertEquals(2000, couponInfo.expectedDiscount()), // 20000 * 10%
-            () -> assertEquals(18000, couponInfo.finalAmount()) // 20000 - 2000
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.coupons()).hasSize(1);
+        assertThat(response.orderAmount()).isEqualTo(20000);
+        assertThat(couponInfo.expectedDiscount()).isEqualTo(2000);
+        assertThat(couponInfo.finalAmount()).isEqualTo(18000);
     }
 
     @Test
@@ -80,10 +78,8 @@ class GetAvailableUserCouponsUseCaseTest {
 
         // Then
         AvailableUserCouponListResponse.AvailableUserCouponInfo couponInfo = response.coupons().get(0);
-        assertAll("최대 할인 금액 검증",
-            () -> assertEquals(5000, couponInfo.expectedDiscount()), // 최대 할인 금액
-            () -> assertEquals(95000, couponInfo.finalAmount()) // 100000 - 5000
-        );
+        assertThat(couponInfo.expectedDiscount()).isEqualTo(5000);
+        assertThat(couponInfo.finalAmount()).isEqualTo(95000);
     }
 
     @Test
@@ -105,10 +101,8 @@ class GetAvailableUserCouponsUseCaseTest {
 
         // Then
         AvailableUserCouponListResponse.AvailableUserCouponInfo couponInfo = response.coupons().get(0);
-        assertAll("고정 금액 할인 검증",
-            () -> assertEquals(5000, couponInfo.expectedDiscount()),
-            () -> assertEquals(25000, couponInfo.finalAmount()) // 30000 - 5000
-        );
+        assertThat(couponInfo.expectedDiscount()).isEqualTo(5000);
+        assertThat(couponInfo.finalAmount()).isEqualTo(25000);
     }
 
     // 테스트 전용 Mock Repository

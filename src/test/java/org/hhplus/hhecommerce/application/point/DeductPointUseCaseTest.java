@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class DeductPointUseCaseTest {
 
@@ -49,13 +49,11 @@ class DeductPointUseCaseTest {
         DeductResponse response = deductPointUseCase.execute(user.getId(), request);
 
         // Then
-        assertAll("DeductResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(user.getId(), response.userId()),
-            () -> assertEquals(7000, response.amount()), // 10000 - 3000
-            () -> assertEquals(3000, response.deductedAmount()),
-            () -> assertEquals("Point deducted successfully", response.message())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.userId()).isEqualTo(user.getId());
+        assertThat(response.amount()).isEqualTo(7000); // 10000 - 3000
+        assertThat(response.deductedAmount()).isEqualTo(3000);
+        assertThat(response.message()).isEqualTo("Point deducted successfully");
     }
 
     @Test
@@ -72,15 +70,12 @@ class DeductPointUseCaseTest {
         DeductRequest request = new DeductRequest(5000);
 
         // When & Then
-        PointException exception = assertThrows(PointException.class, () -> {
-            deductPointUseCase.execute(user.getId(), request);
-        });
-        Point unchangedPoint = pointRepository.findByUserId(user.getId()).orElseThrow();
+        assertThatThrownBy(() -> deductPointUseCase.execute(user.getId(), request))
+            .isInstanceOf(PointException.class)
+            .hasFieldOrPropertyWithValue("errorCode", PointErrorCode.INSUFFICIENT_BALANCE);
 
-        assertAll("잔액 부족 검증",
-            () -> assertEquals(PointErrorCode.INSUFFICIENT_BALANCE, exception.getErrorCode()),
-            () -> assertEquals(1000, unchangedPoint.getAmount())
-        );
+        Point unchangedPoint = pointRepository.findByUserId(user.getId()).orElseThrow();
+        assertThat(unchangedPoint.getAmount()).isEqualTo(1000);
     }
 
     @Test
@@ -93,9 +88,8 @@ class DeductPointUseCaseTest {
         DeductRequest request = new DeductRequest(1000);
 
         // When & Then
-        assertThrows(PointException.class, () -> {
-            deductPointUseCase.execute(user.getId(), request);
-        });
+        assertThatThrownBy(() -> deductPointUseCase.execute(user.getId(), request))
+            .isInstanceOf(PointException.class);
     }
 
     @Test
@@ -115,7 +109,7 @@ class DeductPointUseCaseTest {
         DeductResponse finalResponse = deductPointUseCase.execute(user.getId(), new DeductRequest(2000));
 
         // Then
-        assertEquals(10000, finalResponse.amount()); // 10000 - 3000 + 5000 - 2000
+        assertThat(finalResponse.amount()).isEqualTo(10000); // 10000 - 3000 + 5000 - 2000
     }
 
     // 테스트 전용 Mock Repository

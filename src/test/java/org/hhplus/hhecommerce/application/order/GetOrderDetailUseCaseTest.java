@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class GetOrderDetailUseCaseTest {
 
@@ -46,22 +46,19 @@ class GetOrderDetailUseCaseTest {
         OrderDetailResponse response = getOrderDetailUseCase.execute(order.getId());
 
         // Then
-        assertAll("OrderDetailResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(order.getId(), response.id()),
-            () -> assertEquals(user.getId(), response.userId()),
-            () -> assertEquals(100000, response.totalAmount()),
-            () -> assertEquals(1, response.items().size())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.id()).isEqualTo(order.getId());
+        assertThat(response.userId()).isEqualTo(user.getId());
+        assertThat(response.totalAmount()).isEqualTo(100000);
+        assertThat(response.items()).hasSize(1);
     }
 
     @Test
     @DisplayName("존재하지 않는 주문을 조회하면 예외가 발생한다")
     void 존재하지_않는_주문을_조회하면_예외가_발생한다() {
         // When & Then
-        assertThrows(OrderException.class, () -> {
-            getOrderDetailUseCase.execute(999L);
-        });
+        assertThatThrownBy(() -> getOrderDetailUseCase.execute(999L))
+            .isInstanceOf(OrderException.class);
     }
 
     // 테스트 전용 Mock Repository

@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class DeleteCartUseCaseTest {
 
@@ -46,24 +46,21 @@ class DeleteCartUseCaseTest {
         DeleteCartResponse response = deleteCartUseCase.execute(cart.getId());
 
         // Then
-        assertAll("DeleteCartResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(cart.getId(), response.id()),
-            () -> assertTrue(response.message().contains("삭제"))
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.id()).isEqualTo(cart.getId());
+        assertThat(response.message()).contains("삭제");
 
         // 실제로 삭제되었는지 확인
         Optional<Cart> deletedCart = cartRepository.findById(cart.getId());
-        assertFalse(deletedCart.isPresent());
+        assertThat(deletedCart).isNotPresent();
     }
 
     @Test
     @DisplayName("존재하지 않는 장바구니 항목은 삭제할 수 없다")
     void 존재하지_않는_장바구니_항목은_삭제할_수_없다() {
         // When & Then
-        assertThrows(CartException.class, () -> {
-            deleteCartUseCase.execute(999L);
-        });
+        assertThatThrownBy(() -> deleteCartUseCase.execute(999L))
+            .isInstanceOf(CartException.class);
     }
 
     // 테스트 전용 Mock Repository

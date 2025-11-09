@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class GetPopularProductsUseCaseTest {
 
@@ -41,13 +41,11 @@ class GetPopularProductsUseCaseTest {
         PopularProductsResponse response = getPopularProductsUseCase.execute();
 
         // Then
-        assertAll("주문 없을 때 응답 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(3, response.totalCount()),
-            () -> assertEquals(3, response.products().size()),
-            () -> assertTrue(response.products().stream()
-                    .allMatch(product -> product.totalSales() == 0)) // 판매량은 모두 0이어야 함
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.totalCount()).isEqualTo(3);
+        assertThat(response.products()).hasSize(3);
+        assertThat(response.products())
+            .allMatch(product -> product.totalSales() == 0);
     }
 
     @Test
@@ -90,18 +88,17 @@ class GetPopularProductsUseCaseTest {
         PopularProductsResponse response = getPopularProductsUseCase.execute();
 
         // Then
-        assertAll("인기 상품 정렬 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(3, response.totalCount()),
-            () -> assertEquals(3, response.products().size()),
-            // 판매량 순서 확인: 상품3(15) > 상품1(10) > 상품2(5)
-            () -> assertEquals(product3.getId(), response.products().get(0).productId()),
-            () -> assertEquals(15, response.products().get(0).totalSales()),
-            () -> assertEquals(product1.getId(), response.products().get(1).productId()),
-            () -> assertEquals(10, response.products().get(1).totalSales()),
-            () -> assertEquals(product2.getId(), response.products().get(2).productId()),
-            () -> assertEquals(5, response.products().get(2).totalSales())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.totalCount()).isEqualTo(3);
+        assertThat(response.products()).hasSize(3);
+
+        // 판매량 순서 확인: 상품3(15) > 상품1(10) > 상품2(5)
+        assertThat(response.products().get(0).productId()).isEqualTo(product3.getId());
+        assertThat(response.products().get(0).totalSales()).isEqualTo(15);
+        assertThat(response.products().get(1).productId()).isEqualTo(product1.getId());
+        assertThat(response.products().get(1).totalSales()).isEqualTo(10);
+        assertThat(response.products().get(2).productId()).isEqualTo(product2.getId());
+        assertThat(response.products().get(2).totalSales()).isEqualTo(5);
     }
 
     @Test
@@ -135,11 +132,9 @@ class GetPopularProductsUseCaseTest {
         PopularProductsResponse response = getPopularProductsUseCase.execute();
 
         // Then
-        assertAll("최대 5개 제한 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(5, response.totalCount()), // 최대 5개만
-            () -> assertEquals(5, response.products().size())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.totalCount()).isEqualTo(5);
+        assertThat(response.products()).hasSize(5);
     }
 
     // 테스트 전용 Mock OrderRepository

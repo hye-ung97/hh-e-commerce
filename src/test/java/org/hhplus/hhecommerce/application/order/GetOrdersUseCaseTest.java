@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class GetOrdersUseCaseTest {
 
@@ -45,11 +45,9 @@ class GetOrdersUseCaseTest {
         OrderListResponse response = getOrdersUseCase.execute(user.getId());
 
         // Then
-        assertAll("OrderListResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(1, response.orders().size()),
-            () -> assertEquals(1, response.total())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.orders()).hasSize(1);
+        assertThat(response.total()).isEqualTo(1);
     }
 
     // 테스트 전용 Mock Repository

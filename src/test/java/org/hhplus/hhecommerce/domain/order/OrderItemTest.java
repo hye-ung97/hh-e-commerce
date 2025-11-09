@@ -7,7 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class OrderItemTest {
 
@@ -27,13 +27,11 @@ class OrderItemTest {
         OrderItem orderItem = new OrderItem(option, 2, 50000);
 
         // Then
-        assertAll("주문 항목 생성 검증",
-            () -> assertEquals(option, orderItem.getProductOption()),
-            () -> assertEquals(2, orderItem.getQuantity()),
-            () -> assertEquals(50000, orderItem.getUnitPrice()),
-            () -> assertEquals(100000, orderItem.getSubTotal()), // 50000 * 2
-            () -> assertEquals(OrderItemStatus.ORDERED, orderItem.getStatus())
-        );
+        assertThat(orderItem.getProductOption()).isEqualTo(option);
+        assertThat(orderItem.getQuantity()).isEqualTo(2);
+        assertThat(orderItem.getUnitPrice()).isEqualTo(50000);
+        assertThat(orderItem.getSubTotal()).isEqualTo(100000); // 50000 * 2
+        assertThat(orderItem.getStatus()).isEqualTo(OrderItemStatus.ORDERED);
     }
 
     @Test
@@ -46,10 +44,8 @@ class OrderItemTest {
         int totalPrice = orderItem.getTotalPrice();
 
         // Then
-        assertAll("총 가격 계산 검증",
-            () -> assertEquals(150000, totalPrice), // 50000 * 3
-            () -> assertEquals(orderItem.getSubTotal(), totalPrice)
-        );
+        assertThat(totalPrice).isEqualTo(150000); // 50000 * 3
+        assertThat(totalPrice).isEqualTo(orderItem.getSubTotal());
     }
 
     @Test
@@ -62,7 +58,7 @@ class OrderItemTest {
         orderItem.cancel();
 
         // Then
-        assertEquals(OrderItemStatus.CANCELLED, orderItem.getStatus());
+        assertThat(orderItem.getStatus()).isEqualTo(OrderItemStatus.CANCELLED);
     }
 
     @Test
@@ -73,9 +69,8 @@ class OrderItemTest {
         orderItem.cancel();
 
         // When & Then
-        assertThrows(IllegalStateException.class, () -> {
-            orderItem.cancel();
-        });
+        assertThatThrownBy(() -> orderItem.cancel())
+            .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -85,7 +80,7 @@ class OrderItemTest {
         OrderItem orderItem = new OrderItem(option, 2, 50000);
 
         // Then
-        assertEquals(OrderItemStatus.ORDERED, orderItem.getStatus());
+        assertThat(orderItem.getStatus()).isEqualTo(OrderItemStatus.ORDERED);
     }
 
     @Test
@@ -95,10 +90,8 @@ class OrderItemTest {
         OrderItem orderItem = new OrderItem(option, 1, 50000);
 
         // Then
-        assertAll("수량 1 주문 항목 검증",
-            () -> assertEquals(1, orderItem.getQuantity()),
-            () -> assertEquals(50000, orderItem.getSubTotal())
-        );
+        assertThat(orderItem.getQuantity()).isEqualTo(1);
+        assertThat(orderItem.getSubTotal()).isEqualTo(50000);
     }
 
     @Test
@@ -108,9 +101,7 @@ class OrderItemTest {
         OrderItem orderItem = new OrderItem(option, 100, 50000);
 
         // Then
-        assertAll("대량 수량 주문 항목 검증",
-            () -> assertEquals(100, orderItem.getQuantity()),
-            () -> assertEquals(5000000, orderItem.getSubTotal()) // 50000 * 100
-        );
+        assertThat(orderItem.getQuantity()).isEqualTo(100);
+        assertThat(orderItem.getSubTotal()).isEqualTo(5000000); // 50000 * 100
     }
 }

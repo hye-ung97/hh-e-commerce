@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class CouponTest {
 
@@ -26,15 +26,13 @@ class CouponTest {
                 now.minusDays(1), now.plusDays(30));
 
         // Then
-        assertAll("쿠폰 생성 검증",
-            () -> assertEquals("10% 할인", coupon.getName()),
-            () -> assertEquals(CouponType.RATE, coupon.getDiscountType()),
-            () -> assertEquals(10, coupon.getDiscountValue()),
-            () -> assertEquals(5000, coupon.getMaxDiscountAmount()),
-            () -> assertEquals(10000, coupon.getMinOrderAmount()),
-            () -> assertEquals(100, coupon.getTotalQuantity()),
-            () -> assertEquals(0, coupon.getIssuedQuantity())
-        );
+        assertThat(coupon.getName()).isEqualTo("10% 할인");
+        assertThat(coupon.getDiscountType()).isEqualTo(CouponType.RATE);
+        assertThat(coupon.getDiscountValue()).isEqualTo(10);
+        assertThat(coupon.getMaxDiscountAmount()).isEqualTo(5000);
+        assertThat(coupon.getMinOrderAmount()).isEqualTo(10000);
+        assertThat(coupon.getTotalQuantity()).isEqualTo(100);
+        assertThat(coupon.getIssuedQuantity()).isEqualTo(0);
     }
 
     @Test
@@ -45,7 +43,7 @@ class CouponTest {
                 now.minusDays(1), now.plusDays(30));
 
         // When & Then
-        assertTrue(coupon.canIssue());
+        assertThat(coupon.canIssue()).isTrue();
     }
 
     @Test
@@ -56,7 +54,7 @@ class CouponTest {
                 now.minusDays(30), now.minusDays(1));
 
         // When & Then
-        assertFalse(coupon.canIssue());
+        assertThat(coupon.canIssue()).isFalse();
     }
 
     @Test
@@ -67,7 +65,7 @@ class CouponTest {
                 now.plusDays(1), now.plusDays(30));
 
         // When & Then
-        assertFalse(coupon.canIssue());
+        assertThat(coupon.canIssue()).isFalse();
     }
 
     @Test
@@ -81,7 +79,7 @@ class CouponTest {
         coupon.issue();
 
         // Then
-        assertEquals(1, coupon.getIssuedQuantity());
+        assertThat(coupon.getIssuedQuantity()).isEqualTo(1);
     }
 
     @Test
@@ -97,7 +95,7 @@ class CouponTest {
         }
 
         // Then
-        assertEquals(5, coupon.getIssuedQuantity());
+        assertThat(coupon.getIssuedQuantity()).isEqualTo(5);
     }
 
     @Test
@@ -110,10 +108,10 @@ class CouponTest {
         coupon.issue();
 
         // When & Then
-        assertThrows(CouponException.class, () -> {
-            coupon.issue();
-        });
-        assertEquals(1, coupon.getIssuedQuantity());
+        assertThatThrownBy(() -> coupon.issue())
+            .isInstanceOf(CouponException.class);
+
+        assertThat(coupon.getIssuedQuantity()).isEqualTo(1);
     }
 
     @Test
@@ -127,7 +125,7 @@ class CouponTest {
         int discount = coupon.calculateDiscount(50000);
 
         // Then
-        assertEquals(5000, discount); // 50000 * 10%
+        assertThat(discount).isEqualTo(5000);
     }
 
     @Test
@@ -141,7 +139,7 @@ class CouponTest {
         int discount = coupon.calculateDiscount(100000);
 
         // Then
-        assertEquals(5000, discount); // 최대 할인 금액 적용
+        assertThat(discount).isEqualTo(5000);
     }
 
     @Test
@@ -156,10 +154,8 @@ class CouponTest {
         int discount2 = coupon.calculateDiscount(100000);
 
         // Then
-        assertAll("고정 금액 쿠폰 검증",
-            () -> assertEquals(5000, discount1),
-            () -> assertEquals(5000, discount2) // 주문 금액과 관계없이 고정 금액
-        );
+        assertThat(discount1).isEqualTo(5000);
+        assertThat(discount2).isEqualTo(5000);
     }
 
     @Test
@@ -173,6 +169,6 @@ class CouponTest {
         int discount = coupon.calculateDiscount(50000);
 
         // Then
-        assertEquals(0, discount);
+        assertThat(discount).isEqualTo(0);
     }
 }

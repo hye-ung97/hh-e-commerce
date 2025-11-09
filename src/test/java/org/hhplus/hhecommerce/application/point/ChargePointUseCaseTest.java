@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class ChargePointUseCaseTest {
 
@@ -43,13 +43,11 @@ class ChargePointUseCaseTest {
         ChargeResponse response = chargePointUseCase.execute(user.getId(), request);
 
         // Then
-        assertAll("ChargeResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(user.getId(), response.userId()),
-            () -> assertEquals(5000, response.amount()),
-            () -> assertEquals(5000, response.chargedAmount()),
-            () -> assertEquals("Point charged successfully", response.message())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.userId()).isEqualTo(user.getId());
+        assertThat(response.amount()).isEqualTo(5000);
+        assertThat(response.chargedAmount()).isEqualTo(5000);
+        assertThat(response.message()).isEqualTo("Point charged successfully");
     }
 
     @Test
@@ -66,13 +64,11 @@ class ChargePointUseCaseTest {
 
         // Then
         Optional<Point> createdPoint = pointRepository.findByUserId(user.getId());
-        assertAll("포인트 생성 및 충전 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(user.getId(), response.userId()),
-            () -> assertEquals(10000, response.amount()),
-            () -> assertTrue(createdPoint.isPresent()),
-            () -> assertEquals(10000, createdPoint.get().getAmount())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.userId()).isEqualTo(user.getId());
+        assertThat(response.amount()).isEqualTo(10000);
+        assertThat(createdPoint).isPresent();
+        assertThat(createdPoint.get().getAmount()).isEqualTo(10000);
     }
 
     @Test
@@ -91,7 +87,7 @@ class ChargePointUseCaseTest {
         ChargeResponse response = chargePointUseCase.execute(user.getId(), new ChargeRequest(3000));
 
         // Then
-        assertEquals(6000, response.amount()); // 1000 + 2000 + 3000
+        assertThat(response.amount()).isEqualTo(6000); // 1000 + 2000 + 3000
     }
 
     // 테스트 전용 Mock Repository

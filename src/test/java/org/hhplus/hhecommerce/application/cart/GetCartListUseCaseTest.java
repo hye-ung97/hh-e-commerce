@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class GetCartListUseCaseTest {
 
@@ -45,12 +45,10 @@ class GetCartListUseCaseTest {
         CartListResponse response = getCartListUseCase.execute(userId, 0, 10);
 
         // Then
-        assertAll("CartListResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(1, response.items().size()),
-            () -> assertEquals(1, response.totalCount()),
-            () -> assertEquals(3000000, response.totalAmount()) // 1500000 * 2
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.totalCount()).isEqualTo(1);
+        assertThat(response.totalAmount()).isEqualTo(3000000); // 1500000 * 2
     }
 
     @Test
@@ -63,12 +61,10 @@ class GetCartListUseCaseTest {
         CartListResponse response = getCartListUseCase.execute(userId, 0, 10);
 
         // Then
-        assertAll("빈 장바구니 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(0, response.items().size()),
-            () -> assertEquals(0, response.totalCount()),
-            () -> assertEquals(0, response.totalAmount())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.items()).isEmpty();
+        assertThat(response.totalCount()).isEqualTo(0);
+        assertThat(response.totalAmount()).isEqualTo(0);
     }
 
     @Test
@@ -93,11 +89,9 @@ class GetCartListUseCaseTest {
         CartListResponse response = getCartListUseCase.execute(userId, 0, 10);
 
         // Then
-        assertAll("여러 상품 장바구니 검증",
-            () -> assertEquals(2, response.items().size()),
-            () -> assertEquals(2, response.totalCount()),
-            () -> assertEquals(3300000, response.totalAmount()) // (1500000*2) + (100000*3)
-        );
+        assertThat(response.items()).hasSize(2);
+        assertThat(response.totalCount()).isEqualTo(2);
+        assertThat(response.totalAmount()).isEqualTo(3300000); // (1500000*2) + (100000*3)
     }
 
     // 테스트 전용 Mock Repository

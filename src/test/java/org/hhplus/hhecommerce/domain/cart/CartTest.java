@@ -4,7 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class CartTest {
 
@@ -22,11 +22,9 @@ class CartTest {
         Cart newCart = new Cart(1L, 100L, 3);
 
         // Then
-        assertAll("장바구니 생성 검증",
-            () -> assertEquals(1L, newCart.getUserId()),
-            () -> assertEquals(100L, newCart.getProductOptionId()),
-            () -> assertEquals(3, newCart.getQuantity())
-        );
+        assertThat(newCart.getUserId()).isEqualTo(1L);
+        assertThat(newCart.getProductOptionId()).isEqualTo(100L);
+        assertThat(newCart.getQuantity()).isEqualTo(3);
     }
 
     @Test
@@ -36,22 +34,20 @@ class CartTest {
         cart.updateQuantity(5);
 
         // Then
-        assertEquals(5, cart.getQuantity());
+        assertThat(cart.getQuantity()).isEqualTo(5);
     }
 
     @Test
     @DisplayName("수량을 0 이하로 변경할 수 없다")
     void 수량을_0_이하로_변경할_수_없다() {
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            cart.updateQuantity(0);
-        });
+        assertThatThrownBy(() -> cart.updateQuantity(0))
+            .isInstanceOf(IllegalArgumentException.class);
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            cart.updateQuantity(-1);
-        });
+        assertThatThrownBy(() -> cart.updateQuantity(-1))
+            .isInstanceOf(IllegalArgumentException.class);
 
-        assertEquals(2, cart.getQuantity()); // 수량은 변하지 않음
+        assertThat(cart.getQuantity()).isEqualTo(2); // 수량은 변하지 않음
     }
 
     @Test
@@ -61,7 +57,7 @@ class CartTest {
         cart.addQuantity(3);
 
         // Then
-        assertEquals(5, cart.getQuantity()); // 2 + 3
+        assertThat(cart.getQuantity()).isEqualTo(5); // 2 + 3
     }
 
     @Test
@@ -73,7 +69,7 @@ class CartTest {
         cart.addQuantity(3);
 
         // Then
-        assertEquals(8, cart.getQuantity()); // 2 + 1 + 2 + 3
+        assertThat(cart.getQuantity()).isEqualTo(8); // 2 + 1 + 2 + 3
     }
 
     @Test
@@ -84,6 +80,6 @@ class CartTest {
         cart.updateQuantity(10); // 10으로 변경
 
         // Then
-        assertEquals(10, cart.getQuantity());
+        assertThat(cart.getQuantity()).isEqualTo(10);
     }
 }

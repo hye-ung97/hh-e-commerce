@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class CreateOrderUseCaseTest {
 
@@ -78,15 +78,13 @@ class CreateOrderUseCaseTest {
         CreateOrderResponse response = createOrderUseCase.execute(user.getId(), request);
 
         // Then
-        assertAll("CreateOrderResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(user.getId(), response.userId()),
-            () -> assertEquals(100000, response.totalAmount()), // 50000 * 2
-            () -> assertEquals(0, response.discountAmount()),
-            () -> assertEquals(100000, response.finalAmount()),
-            () -> assertEquals("주문이 완료되었습니다", response.message()),
-            () -> assertEquals(1, response.items().size())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.userId()).isEqualTo(user.getId());
+        assertThat(response.totalAmount()).isEqualTo(100000); // 50000 * 2
+        assertThat(response.discountAmount()).isEqualTo(0);
+        assertThat(response.finalAmount()).isEqualTo(100000);
+        assertThat(response.message()).isEqualTo("주문이 완료되었습니다");
+        assertThat(response.items()).hasSize(1);
     }
 
     @Test
@@ -99,9 +97,8 @@ class CreateOrderUseCaseTest {
         CreateOrderRequest request = new CreateOrderRequest(null);
 
         // When & Then
-        assertThrows(OrderException.class, () -> {
-            createOrderUseCase.execute(user.getId(), request);
-        });
+        assertThatThrownBy(() -> createOrderUseCase.execute(user.getId(), request))
+            .isInstanceOf(OrderException.class);
     }
 
     @Test
@@ -125,9 +122,8 @@ class CreateOrderUseCaseTest {
         CreateOrderRequest request = new CreateOrderRequest(null);
 
         // When & Then
-        assertThrows(ProductException.class, () -> {
-            createOrderUseCase.execute(user.getId(), request);
-        });
+        assertThatThrownBy(() -> createOrderUseCase.execute(user.getId(), request))
+            .isInstanceOf(ProductException.class);
     }
 
     @Test
@@ -151,10 +147,9 @@ class CreateOrderUseCaseTest {
         CreateOrderRequest request = new CreateOrderRequest(null);
 
         // When & Then
-        PointException exception = assertThrows(PointException.class, () -> {
-            createOrderUseCase.execute(user.getId(), request);
-        });
-        assertEquals(PointErrorCode.INSUFFICIENT_BALANCE, exception.getErrorCode());
+        assertThatThrownBy(() -> createOrderUseCase.execute(user.getId(), request))
+            .isInstanceOf(PointException.class)
+            .hasFieldOrPropertyWithValue("errorCode", PointErrorCode.INSUFFICIENT_BALANCE);
     }
 
     @Test
@@ -182,7 +177,7 @@ class CreateOrderUseCaseTest {
 
         // Then
         ProductOption updatedOption = productOptionRepository.findById(option.getId()).orElseThrow();
-        assertEquals(7, updatedOption.getStock()); // 10 - 3
+        assertThat(updatedOption.getStock()).isEqualTo(7); // 10 - 3
     }
 
     @Test
@@ -210,7 +205,7 @@ class CreateOrderUseCaseTest {
 
         // Then
         List<Cart> carts = cartRepository.findByUserId(user.getId());
-        assertTrue(carts.isEmpty());
+        assertThat(carts).isEmpty();
     }
 
     @Test
@@ -245,11 +240,9 @@ class CreateOrderUseCaseTest {
         CreateOrderResponse response = createOrderUseCase.execute(user.getId(), request);
 
         // Then
-        assertAll("쿠폰 적용 주문 검증",
-            () -> assertEquals(100000, response.totalAmount()), // 50000 * 2
-            () -> assertEquals(10000, response.discountAmount()), // 100000 * 10%
-            () -> assertEquals(90000, response.finalAmount()) // 100000 - 10000
-        );
+        assertThat(response.totalAmount()).isEqualTo(100000); // 50000 * 2
+        assertThat(response.discountAmount()).isEqualTo(10000); // 100000 * 10%
+        assertThat(response.finalAmount()).isEqualTo(90000); // 100000 - 10000
     }
 
     @Test
@@ -281,9 +274,8 @@ class CreateOrderUseCaseTest {
         CreateOrderRequest request = new CreateOrderRequest(userCoupon.getId());
 
         // When & Then
-        assertThrows(CouponException.class, () -> {
-            createOrderUseCase.execute(user.getId(), request);
-        });
+        assertThatThrownBy(() -> createOrderUseCase.execute(user.getId(), request))
+            .isInstanceOf(CouponException.class);
     }
 
     @Test
@@ -316,9 +308,8 @@ class CreateOrderUseCaseTest {
         CreateOrderRequest request = new CreateOrderRequest(userCoupon.getId());
 
         // When & Then
-        assertThrows(CouponException.class, () -> {
-            createOrderUseCase.execute(user.getId(), request);
-        });
+        assertThatThrownBy(() -> createOrderUseCase.execute(user.getId(), request))
+            .isInstanceOf(CouponException.class);
     }
 
     // 테스트 전용 Mock Repository

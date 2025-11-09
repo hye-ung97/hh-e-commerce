@@ -7,7 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class PointTest {
 
@@ -27,10 +27,8 @@ class PointTest {
         Point newPoint = new Point(user);
 
         // Then
-        assertAll("포인트 초기 상태 검증",
-            () -> assertEquals(0, newPoint.getAmount()),
-            () -> assertEquals(user, newPoint.getUser())
-        );
+        assertThat(newPoint.getAmount()).isEqualTo(0);
+        assertThat(newPoint.getUser()).isEqualTo(user);
     }
 
     @Test
@@ -40,7 +38,7 @@ class PointTest {
         point.charge(5000);
 
         // Then
-        assertEquals(5000, point.getAmount());
+        assertThat(point.getAmount()).isEqualTo(5000);
     }
 
     @Test
@@ -52,25 +50,22 @@ class PointTest {
         point.charge(3000);
 
         // Then
-        assertEquals(6000, point.getAmount());
+        assertThat(point.getAmount()).isEqualTo(6000);
     }
 
     @Test
     @DisplayName("0 이하의 금액으로 충전할 수 없다")
     void 영_이하의_금액으로_충전할_수_없다() {
         // When & Then
-        PointException exception1 = assertThrows(PointException.class, () -> {
-            point.charge(0);
-        });
-        PointException exception2 = assertThrows(PointException.class, () -> {
-            point.charge(-1000);
-        });
+        assertThatThrownBy(() -> point.charge(0))
+            .isInstanceOf(PointException.class)
+            .hasFieldOrPropertyWithValue("errorCode", PointErrorCode.INVALID_AMOUNT);
 
-        assertAll("잘못된 충전 금액 검증",
-            () -> assertEquals(PointErrorCode.INVALID_AMOUNT, exception1.getErrorCode()),
-            () -> assertEquals(PointErrorCode.INVALID_AMOUNT, exception2.getErrorCode()),
-            () -> assertEquals(0, point.getAmount()) // 잔액은 변하지 않음
-        );
+        assertThatThrownBy(() -> point.charge(-1000))
+            .isInstanceOf(PointException.class)
+            .hasFieldOrPropertyWithValue("errorCode", PointErrorCode.INVALID_AMOUNT);
+
+        assertThat(point.getAmount()).isEqualTo(0); // 잔액은 변하지 않음
     }
 
     @Test
@@ -83,7 +78,7 @@ class PointTest {
         point.deduct(3000);
 
         // Then
-        assertEquals(7000, point.getAmount());
+        assertThat(point.getAmount()).isEqualTo(7000);
     }
 
     @Test
@@ -98,7 +93,7 @@ class PointTest {
         point.deduct(3000);
 
         // Then
-        assertEquals(4000, point.getAmount()); // 10000 - 1000 - 2000 - 3000
+        assertThat(point.getAmount()).isEqualTo(4000); // 10000 - 1000 - 2000 - 3000
     }
 
     @Test
@@ -108,15 +103,12 @@ class PointTest {
         point.charge(1000);
 
         // When & Then
-        PointException exception = assertThrows(PointException.class, () -> {
-            point.deduct(5000);
-        });
+        assertThatThrownBy(() -> point.deduct(5000))
+            .isInstanceOf(PointException.class)
+            .hasFieldOrPropertyWithValue("errorCode", PointErrorCode.INSUFFICIENT_BALANCE)
+            .hasMessageContaining("부족");
 
-        assertAll("잔액 부족 검증",
-            () -> assertEquals(PointErrorCode.INSUFFICIENT_BALANCE, exception.getErrorCode()),
-            () -> assertTrue(exception.getMessage().contains("부족")),
-            () -> assertEquals(1000, point.getAmount()) // 잔액은 변하지 않음
-        );
+        assertThat(point.getAmount()).isEqualTo(1000); // 잔액은 변하지 않음
     }
 
     @Test
@@ -126,18 +118,15 @@ class PointTest {
         point.charge(10000);
 
         // When & Then
-        PointException exception1 = assertThrows(PointException.class, () -> {
-            point.deduct(0);
-        });
-        PointException exception2 = assertThrows(PointException.class, () -> {
-            point.deduct(-1000);
-        });
+        assertThatThrownBy(() -> point.deduct(0))
+            .isInstanceOf(PointException.class)
+            .hasFieldOrPropertyWithValue("errorCode", PointErrorCode.INVALID_AMOUNT);
 
-        assertAll("잘못된 차감 금액 검증",
-            () -> assertEquals(PointErrorCode.INVALID_AMOUNT, exception1.getErrorCode()),
-            () -> assertEquals(PointErrorCode.INVALID_AMOUNT, exception2.getErrorCode()),
-            () -> assertEquals(10000, point.getAmount()) // 잔액은 변하지 않음
-        );
+        assertThatThrownBy(() -> point.deduct(-1000))
+            .isInstanceOf(PointException.class)
+            .hasFieldOrPropertyWithValue("errorCode", PointErrorCode.INVALID_AMOUNT);
+
+        assertThat(point.getAmount()).isEqualTo(10000); // 잔액은 변하지 않음
     }
 
     @Test
@@ -150,17 +139,16 @@ class PointTest {
         point.deduct(5000);
 
         // Then
-        assertEquals(0, point.getAmount());
+        assertThat(point.getAmount()).isEqualTo(0);
     }
 
     @Test
     @DisplayName("포인트가 0일 때는 차감할 수 없다")
     void 포인트가_0일_때는_차감할_수_없다() {
         // When & Then
-        PointException exception = assertThrows(PointException.class, () -> {
-            point.deduct(100);
-        });
-        assertEquals(PointErrorCode.INSUFFICIENT_BALANCE, exception.getErrorCode());
+        assertThatThrownBy(() -> point.deduct(100))
+            .isInstanceOf(PointException.class)
+            .hasFieldOrPropertyWithValue("errorCode", PointErrorCode.INSUFFICIENT_BALANCE);
     }
 
     @Test
@@ -170,22 +158,18 @@ class PointTest {
         point.charge(10000);
 
         // When & Then
-        assertAll("포인트 충분성 검증",
-            () -> assertTrue(point.hasEnoughPoint(5000)),
-            () -> assertTrue(point.hasEnoughPoint(10000)),
-            () -> assertFalse(point.hasEnoughPoint(10001)),
-            () -> assertFalse(point.hasEnoughPoint(20000))
-        );
+        assertThat(point.hasEnoughPoint(5000)).isTrue();
+        assertThat(point.hasEnoughPoint(10000)).isTrue();
+        assertThat(point.hasEnoughPoint(10001)).isFalse();
+        assertThat(point.hasEnoughPoint(20000)).isFalse();
     }
 
     @Test
     @DisplayName("포인트가 0일 때 충분한 포인트가 있는지 확인할 수 있다")
     void 포인트가_0일_때_충분한_포인트가_있는지_확인할_수_있다() {
         // When & Then
-        assertAll("잔액 0일 때 충분성 검증",
-            () -> assertTrue(point.hasEnoughPoint(0)),
-            () -> assertFalse(point.hasEnoughPoint(1))
-        );
+        assertThat(point.hasEnoughPoint(0)).isTrue();
+        assertThat(point.hasEnoughPoint(1)).isFalse();
     }
 
     @Test
@@ -198,7 +182,7 @@ class PointTest {
         point.deduct(2000);
 
         // Then
-        assertEquals(10000, point.getAmount()); // 10000 - 3000 + 5000 - 2000
+        assertThat(point.getAmount()).isEqualTo(10000); // 10000 - 3000 + 5000 - 2000
     }
 
     @Test
@@ -208,10 +192,8 @@ class PointTest {
         Point newPoint = new Point(999L, user, 50000);
 
         // Then
-        assertAll("ID 포함 생성자 검증",
-            () -> assertEquals(999L, newPoint.getId()),
-            () -> assertEquals(user, newPoint.getUser()),
-            () -> assertEquals(50000, newPoint.getAmount())
-        );
+        assertThat(newPoint.getId()).isEqualTo(999L);
+        assertThat(newPoint.getUser()).isEqualTo(user);
+        assertThat(newPoint.getAmount()).isEqualTo(50000);
     }
 }

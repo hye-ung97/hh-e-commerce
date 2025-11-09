@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class GetProductDetailUseCaseTest {
 
@@ -41,13 +41,11 @@ class GetProductDetailUseCaseTest {
         ProductDetailResponse response = getProductDetailUseCase.execute(savedProduct.getId());
 
         // Then
-        assertAll("ProductDetailResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(savedProduct.getId(), response.id()),
-            () -> assertEquals("테스트 상품", response.name()),
-            () -> assertEquals("전자제품", response.category()),
-            () -> assertEquals(2, response.options().size())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.id()).isEqualTo(savedProduct.getId());
+        assertThat(response.name()).isEqualTo("테스트 상품");
+        assertThat(response.category()).isEqualTo("전자제품");
+        assertThat(response.options()).hasSize(2);
     }
 
     @Test
@@ -57,9 +55,8 @@ class GetProductDetailUseCaseTest {
         Long nonExistentId = 999L;
 
         // When & Then
-        assertThrows(ProductException.class, () -> {
-            getProductDetailUseCase.execute(nonExistentId);
-        });
+        assertThatThrownBy(() -> getProductDetailUseCase.execute(nonExistentId))
+            .isInstanceOf(ProductException.class);
     }
 
     // 테스트 전용 Mock Repository

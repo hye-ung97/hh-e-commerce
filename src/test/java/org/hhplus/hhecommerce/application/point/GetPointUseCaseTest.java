@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class GetPointUseCaseTest {
 
@@ -42,11 +42,9 @@ class GetPointUseCaseTest {
         PointResponse response = getPointUseCase.execute(user.getId());
 
         // Then
-        assertAll("PointResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(user.getId(), response.userId()),
-            () -> assertEquals(1000, response.amount())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.userId()).isEqualTo(user.getId());
+        assertThat(response.amount()).isEqualTo(1000);
     }
 
     @Test
@@ -56,9 +54,8 @@ class GetPointUseCaseTest {
         Long nonExistentUserId = 999L;
 
         // When & Then
-        assertThrows(PointException.class, () -> {
-            getPointUseCase.execute(nonExistentUserId);
-        });
+        assertThatThrownBy(() -> getPointUseCase.execute(nonExistentUserId))
+            .isInstanceOf(PointException.class);
     }
 
     // 테스트 전용 Mock Repository
