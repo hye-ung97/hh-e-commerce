@@ -176,9 +176,6 @@ class IssueCouponUseCaseTest {
         List<UserCoupon> userCoupons = userCouponRepository.findByUserId(userId);
         assertThat(userCoupons).hasSize(1)
             .withFailMessage("동일 사용자는 같은 쿠폰을 1번만 발급받을 수 있어야 합니다. 실제: " + userCoupons.size());
-
-        // 성공 횟수 확인 (디버깅용)
-        System.out.println("성공: " + successCount.get() + ", 실패: " + failCount.get());
     }
 
     // 테스트 전용 Mock Repository
