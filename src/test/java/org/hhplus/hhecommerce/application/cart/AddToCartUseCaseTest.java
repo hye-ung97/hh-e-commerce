@@ -47,10 +47,10 @@ class AddToCartUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(userId, response.getUserId());
-        assertEquals(option.getId(), response.getProductOptionId());
-        assertEquals(2, response.getQuantity());
-        assertEquals(3000000, response.getTotalPrice());
+        assertEquals(userId, response.userId());
+        assertEquals(option.getId(), response.productOptionId());
+        assertEquals(2, response.quantity());
+        assertEquals(3000000, response.totalPrice());
     }
 
     @Test
@@ -71,8 +71,8 @@ class AddToCartUseCaseTest {
         CartItemResponse response = addToCartUseCase.execute(userId, request);
 
         // Then
-        assertEquals(5, response.getQuantity()); // 2 + 3
-        assertEquals(7500000, response.getTotalPrice()); // 1500000 * 5
+        assertEquals(5, response.quantity()); // 2 + 3
+        assertEquals(7500000, response.totalPrice()); // 1500000 * 5
     }
 
     @Test

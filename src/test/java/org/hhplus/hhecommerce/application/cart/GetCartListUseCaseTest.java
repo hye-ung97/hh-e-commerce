@@ -46,9 +46,9 @@ class GetCartListUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(1, response.getItems().size());
-        assertEquals(1, response.getTotalCount());
-        assertEquals(3000000, response.getTotalAmount()); // 1500000 * 2
+        assertEquals(1, response.items().size());
+        assertEquals(1, response.totalCount());
+        assertEquals(3000000, response.totalAmount()); // 1500000 * 2
     }
 
     @Test
@@ -62,9 +62,9 @@ class GetCartListUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(0, response.getItems().size());
-        assertEquals(0, response.getTotalCount());
-        assertEquals(0, response.getTotalAmount());
+        assertEquals(0, response.items().size());
+        assertEquals(0, response.totalCount());
+        assertEquals(0, response.totalAmount());
     }
 
     @Test
@@ -89,9 +89,9 @@ class GetCartListUseCaseTest {
         CartListResponse response = getCartListUseCase.execute(userId, 0, 10);
 
         // Then
-        assertEquals(2, response.getItems().size());
-        assertEquals(2, response.getTotalCount());
-        assertEquals(3300000, response.getTotalAmount()); // (1500000*2) + (100000*3)
+        assertEquals(2, response.items().size());
+        assertEquals(2, response.totalCount());
+        assertEquals(3300000, response.totalAmount()); // (1500000*2) + (100000*3)
     }
 
     // 테스트 전용 Mock Repository
