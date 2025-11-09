@@ -36,9 +36,6 @@ public class GetAvailableCouponsUseCase {
                 ))
                 .collect(Collectors.toList());
 
-        return CouponListResponse.builder()
-                .coupons(couponInfos)
-                .totalCount(totalCount)
-                .build();
+        return new CouponListResponse(couponInfos, totalCount);
     }
 }

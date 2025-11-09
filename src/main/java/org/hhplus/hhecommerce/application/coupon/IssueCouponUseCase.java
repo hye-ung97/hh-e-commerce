@@ -39,14 +39,19 @@ public class IssueCouponUseCase {
             UserCoupon userCoupon = new UserCoupon(userId, couponId, LocalDateTime.now().plusDays(30));
             userCouponRepository.save(userCoupon);
 
-            return IssueCouponResponse.builder()
-                    .id(userCoupon.getId())
-                    .couponId(coupon.getId())
-                    .couponName(coupon.getName())
-                    .issuedAt(userCoupon.getCreatedAt())
-                    .expiredAt(userCoupon.getExpiredAt())
-                    .message("쿠폰이 발급되었습니다")
-                    .build();
+            return new IssueCouponResponse(
+                    userCoupon.getId(),
+                    userId,
+                    coupon.getId(),
+                    coupon.getName(),
+                    coupon.getDiscountType().name(),
+                    coupon.getDiscountValue(),
+                    coupon.getMinOrderAmount(),
+                    false,
+                    userCoupon.getCreatedAt(),
+                    userCoupon.getExpiredAt(),
+                    "쿠폰이 발급되었습니다"
+            );
         }
     }
 }

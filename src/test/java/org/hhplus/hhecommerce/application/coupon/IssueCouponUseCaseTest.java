@@ -45,9 +45,9 @@ class IssueCouponUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(coupon.getId(), response.getCouponId());
-        assertEquals("10% 할인", response.getCouponName());
-        assertTrue(response.getMessage().contains("발급"));
+        assertEquals(coupon.getId(), response.couponId());
+        assertEquals("10% 할인", response.couponName());
+        assertTrue(response.message().contains("발급"));
     }
 
     @Test

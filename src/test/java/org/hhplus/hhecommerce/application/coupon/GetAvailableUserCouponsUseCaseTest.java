@@ -51,12 +51,12 @@ class GetAvailableUserCouponsUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(1, response.getCoupons().size()); // coupon1만 사용 가능
-        assertEquals(20000, response.getOrderAmount());
+        assertEquals(1, response.coupons().size()); // coupon1만 사용 가능
+        assertEquals(20000, response.orderAmount());
 
-        AvailableUserCouponListResponse.AvailableUserCouponInfo couponInfo = response.getCoupons().get(0);
-        assertEquals(2000, couponInfo.getExpectedDiscount()); // 20000 * 10%
-        assertEquals(18000, couponInfo.getFinalAmount()); // 20000 - 2000
+        AvailableUserCouponListResponse.AvailableUserCouponInfo couponInfo = response.coupons().get(0);
+        assertEquals(2000, couponInfo.expectedDiscount()); // 20000 * 10%
+        assertEquals(18000, couponInfo.finalAmount()); // 20000 - 2000
     }
 
     @Test
@@ -78,9 +78,9 @@ class GetAvailableUserCouponsUseCaseTest {
         AvailableUserCouponListResponse response = getAvailableUserCouponsUseCase.execute(userId, 100000);
 
         // Then
-        AvailableUserCouponListResponse.AvailableUserCouponInfo couponInfo = response.getCoupons().get(0);
-        assertEquals(5000, couponInfo.getExpectedDiscount()); // 최대 할인 금액
-        assertEquals(95000, couponInfo.getFinalAmount()); // 100000 - 5000
+        AvailableUserCouponListResponse.AvailableUserCouponInfo couponInfo = response.coupons().get(0);
+        assertEquals(5000, couponInfo.expectedDiscount()); // 최대 할인 금액
+        assertEquals(95000, couponInfo.finalAmount()); // 100000 - 5000
     }
 
     @Test
@@ -101,9 +101,9 @@ class GetAvailableUserCouponsUseCaseTest {
         AvailableUserCouponListResponse response = getAvailableUserCouponsUseCase.execute(userId, 30000);
 
         // Then
-        AvailableUserCouponListResponse.AvailableUserCouponInfo couponInfo = response.getCoupons().get(0);
-        assertEquals(5000, couponInfo.getExpectedDiscount());
-        assertEquals(25000, couponInfo.getFinalAmount()); // 30000 - 5000
+        AvailableUserCouponListResponse.AvailableUserCouponInfo couponInfo = response.coupons().get(0);
+        assertEquals(5000, couponInfo.expectedDiscount());
+        assertEquals(25000, couponInfo.finalAmount()); // 30000 - 5000
     }
 
     // 테스트 전용 Mock Repository
