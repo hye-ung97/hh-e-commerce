@@ -50,8 +50,10 @@ class UpdateCartUseCaseTest {
         CartItemResponse response = updateCartUseCase.execute(cart.getId(), request);
 
         // Then
-        assertEquals(5, response.quantity());
-        assertEquals(7500000, response.totalPrice()); // 1500000 * 5
+        assertAll("수량 변경 검증",
+            () -> assertEquals(5, response.quantity()),
+            () -> assertEquals(7500000, response.totalPrice()) // 1500000 * 5
+        );
     }
 
     @Test

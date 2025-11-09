@@ -44,10 +44,12 @@ class IssueCouponUseCaseTest {
         IssueCouponResponse response = issueCouponUseCase.execute(userId, coupon.getId());
 
         // Then
-        assertNotNull(response);
-        assertEquals(coupon.getId(), response.couponId());
-        assertEquals("10% 할인", response.couponName());
-        assertTrue(response.message().contains("발급"));
+        assertAll("IssueCouponResponse 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(coupon.getId(), response.couponId()),
+            () -> assertEquals("10% 할인", response.couponName()),
+            () -> assertTrue(response.message().contains("발급"))
+        );
     }
 
     @Test
@@ -132,12 +134,11 @@ class IssueCouponUseCaseTest {
         // Then
         Coupon updatedCoupon = couponRepository.findById(coupon.getId()).orElseThrow();
 
-        // 정확히 10명만 발급 성공
-        assertEquals(totalQuantity, successCount.get());
-        // 나머지 10명은 실패
-        assertEquals(concurrentUsers - totalQuantity, failCount.get());
-        // 쿠폰의 발급 수량이 정확히 totalQuantity
-        assertEquals(totalQuantity, updatedCoupon.getIssuedQuantity());
+        assertAll("동시성 제어 검증",
+            () -> assertEquals(totalQuantity, successCount.get()), // 정확히 10명만 발급 성공
+            () -> assertEquals(concurrentUsers - totalQuantity, failCount.get()), // 나머지 10명은 실패
+            () -> assertEquals(totalQuantity, updatedCoupon.getIssuedQuantity()) // 쿠폰의 발급 수량이 정확히 totalQuantity
+        );
     }
 
     @Test

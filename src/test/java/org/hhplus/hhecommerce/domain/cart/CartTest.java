@@ -22,9 +22,11 @@ class CartTest {
         Cart newCart = new Cart(1L, 100L, 3);
 
         // Then
-        assertEquals(1L, newCart.getUserId());
-        assertEquals(100L, newCart.getProductOptionId());
-        assertEquals(3, newCart.getQuantity());
+        assertAll("장바구니 생성 검증",
+            () -> assertEquals(1L, newCart.getUserId()),
+            () -> assertEquals(100L, newCart.getProductOptionId()),
+            () -> assertEquals(3, newCart.getQuantity())
+        );
     }
 
     @Test

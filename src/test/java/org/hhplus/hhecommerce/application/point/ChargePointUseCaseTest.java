@@ -43,11 +43,13 @@ class ChargePointUseCaseTest {
         ChargeResponse response = chargePointUseCase.execute(user.getId(), request);
 
         // Then
-        assertNotNull(response);
-        assertEquals(user.getId(), response.userId());
-        assertEquals(5000, response.amount());
-        assertEquals(5000, response.chargedAmount());
-        assertEquals("Point charged successfully", response.message());
+        assertAll("ChargeResponse 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(user.getId(), response.userId()),
+            () -> assertEquals(5000, response.amount()),
+            () -> assertEquals(5000, response.chargedAmount()),
+            () -> assertEquals("Point charged successfully", response.message())
+        );
     }
 
     @Test
@@ -63,14 +65,14 @@ class ChargePointUseCaseTest {
         ChargeResponse response = chargePointUseCase.execute(user.getId(), request);
 
         // Then
-        assertNotNull(response);
-        assertEquals(user.getId(), response.userId());
-        assertEquals(10000, response.amount());
-
-        // 포인트가 생성되었는지 확인
         Optional<Point> createdPoint = pointRepository.findByUserId(user.getId());
-        assertTrue(createdPoint.isPresent());
-        assertEquals(10000, createdPoint.get().getAmount());
+        assertAll("포인트 생성 및 충전 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(user.getId(), response.userId()),
+            () -> assertEquals(10000, response.amount()),
+            () -> assertTrue(createdPoint.isPresent()),
+            () -> assertEquals(10000, createdPoint.get().getAmount())
+        );
     }
 
     @Test
