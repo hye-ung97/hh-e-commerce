@@ -29,25 +29,21 @@ public class GetCartListUseCase {
                     ProductOption option = productOptionRepository.findById(cart.getProductOptionId())
                             .orElseThrow(()-> new ProductException(ProductErrorCode.PRODUCT_OPTION_NOT_FOUND));
 
-                    return CartListResponse.CartItem.builder()
-                            .id(cart.getId())
-                            .userId(cart.getUserId())
-                            .productOptionId(cart.getProductOptionId())
-                            .productName(option.getProduct().getName())
-                            .optionName(option.getOptionName() + ": " + option.getOptionValue())
-                            .price(option.getPrice())
-                            .quantity(cart.getQuantity())
-                            .totalPrice(option.calculateTotalPrice(cart.getQuantity()))
-                            .build();
+                    return new CartListResponse.CartItem(
+                            cart.getId(),
+                            cart.getUserId(),
+                            cart.getProductOptionId(),
+                            option.getProduct().getName(),
+                            option.getOptionName() + ": " + option.getOptionValue(),
+                            option.getPrice(),
+                            cart.getQuantity(),
+                            option.calculateTotalPrice(cart.getQuantity())
+                    );
                 })
                 .collect(Collectors.toList());
 
-        int totalAmount = items.stream().mapToInt(CartListResponse.CartItem::getTotalPrice).sum();
+        int totalAmount = items.stream().mapToInt(CartListResponse.CartItem::totalPrice).sum();
 
-        return CartListResponse.builder()
-                .items(items)
-                .totalCount(totalCount)
-                .totalAmount(totalAmount)
-                .build();
+        return new CartListResponse(items, totalCount, totalAmount);
     }
 }

@@ -20,9 +20,6 @@ public class DeleteCartUseCase {
 
         cartRepository.delete(cart);
 
-        return DeleteCartResponse.builder()
-                .id(cartId)
-                .message("장바구니에서 삭제되었습니다")
-                .build();
+        return new DeleteCartResponse(cartId, "장바구니에서 삭제되었습니다");
     }
 }

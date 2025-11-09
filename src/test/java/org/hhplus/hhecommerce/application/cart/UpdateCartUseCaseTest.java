@@ -50,8 +50,8 @@ class UpdateCartUseCaseTest {
         CartItemResponse response = updateCartUseCase.execute(cart.getId(), request);
 
         // Then
-        assertEquals(5, response.getQuantity());
-        assertEquals(7500000, response.getTotalPrice()); // 1500000 * 5
+        assertEquals(5, response.quantity());
+        assertEquals(7500000, response.totalPrice()); // 1500000 * 5
     }
 
     @Test

@@ -34,15 +34,16 @@ public class UpdateCartUseCase {
         cart.updateQuantity(request.getQuantity());
         cartRepository.save(cart);
 
-        return CartItemResponse.builder()
-                .id(cart.getId())
-                .userId(cart.getUserId())
-                .productOptionId(cart.getProductOptionId())
-                .productName(option.getProduct().getName())
-                .optionName(option.getOptionName() + ": " + option.getOptionValue())
-                .price(option.getPrice())
-                .quantity(cart.getQuantity())
-                .totalPrice(option.calculateTotalPrice(cart.getQuantity()))
-                .build();
+        return new CartItemResponse(
+                cart.getId(),
+                cart.getUserId(),
+                cart.getProductOptionId(),
+                option.getProduct().getName(),
+                option.getOptionName() + ": " + option.getOptionValue(),
+                option.getPrice(),
+                cart.getQuantity(),
+                option.calculateTotalPrice(cart.getQuantity()),
+                "장바구니가 수정되었습니다"
+        );
     }
 }
