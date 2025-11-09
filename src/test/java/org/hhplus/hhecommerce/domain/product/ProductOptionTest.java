@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class ProductOptionTest {
 
@@ -22,11 +22,9 @@ class ProductOptionTest {
     @DisplayName("재고가 충분한지 확인할 수 있다")
     void 재고가_충분한지_확인할_수_있다() {
         // When & Then
-        assertAll("재고 충분성 검증",
-            () -> assertTrue(productOption.hasStock(5)),
-            () -> assertTrue(productOption.hasStock(10)),
-            () -> assertFalse(productOption.hasStock(11))
-        );
+        assertThat(productOption.hasStock(5)).isTrue();
+        assertThat(productOption.hasStock(10)).isTrue();
+        assertThat(productOption.hasStock(11)).isFalse();
     }
 
     @Test
@@ -39,36 +37,31 @@ class ProductOptionTest {
         productOption.reduceStock(3);
 
         // Then
-        assertEquals(initialStock - 3, productOption.getStock());
+        assertThat(productOption.getStock()).isEqualTo(initialStock - 3);
     }
 
     @Test
     @DisplayName("재고가 부족하면 차감할 수 없다")
     void 재고가_부족하면_차감할_수_없다() {
         // When & Then
-        Exception exception = assertThrows(ProductException.class, () -> {
-            productOption.reduceStock(15);
-        });
+        assertThatThrownBy(() -> productOption.reduceStock(15))
+            .isInstanceOf(ProductException.class)
+            .hasMessageContaining("재고");
 
-        assertAll("재고 부족 검증",
-            () -> assertTrue(exception.getMessage().contains("재고")),
-            () -> assertEquals(10, productOption.getStock()) // 재고는 그대로 유지
-        );
+        assertThat(productOption.getStock()).isEqualTo(10);
     }
 
     @Test
     @DisplayName("0 이하의 수량으로 재고를 차감할 수 없다")
     void 영_이하의_수량으로_재고를_차감할_수_없다() {
         // When & Then
-        assertThrows(ProductException.class, () -> {
-            productOption.reduceStock(0);
-        });
+        assertThatThrownBy(() -> productOption.reduceStock(0))
+            .isInstanceOf(ProductException.class);
 
-        assertThrows(ProductException.class, () -> {
-            productOption.reduceStock(-5);
-        });
+        assertThatThrownBy(() -> productOption.reduceStock(-5))
+            .isInstanceOf(ProductException.class);
 
-        assertEquals(10, productOption.getStock()); // 재고는 그대로 유지
+        assertThat(productOption.getStock()).isEqualTo(10);
     }
 
     @Test
@@ -82,7 +75,7 @@ class ProductOptionTest {
         productOption.restoreStock(3);
 
         // Then
-        assertEquals(currentStock + 3, productOption.getStock());
+        assertThat(productOption.getStock()).isEqualTo(currentStock + 3);
     }
 
     @Test
@@ -92,15 +85,13 @@ class ProductOptionTest {
         int initialStock = productOption.getStock();
 
         // When & Then
-        assertThrows(ProductException.class, () -> {
-            productOption.restoreStock(0);
-        });
+        assertThatThrownBy(() -> productOption.restoreStock(0))
+            .isInstanceOf(ProductException.class);
 
-        assertThrows(ProductException.class, () -> {
-            productOption.restoreStock(-5);
-        });
+        assertThatThrownBy(() -> productOption.restoreStock(-5))
+            .isInstanceOf(ProductException.class);
 
-        assertEquals(initialStock, productOption.getStock()); // 재고는 그대로 유지
+        assertThat(productOption.getStock()).isEqualTo(initialStock);
     }
 
     @Test
@@ -111,23 +102,19 @@ class ProductOptionTest {
         int totalPrice2 = productOption.calculateTotalPrice(3);
 
         // Then
-        assertAll("총 가격 계산 검증",
-            () -> assertEquals(1500000, totalPrice1),
-            () -> assertEquals(4500000, totalPrice2)
-        );
+        assertThat(totalPrice1).isEqualTo(1500000);
+        assertThat(totalPrice2).isEqualTo(4500000);
     }
 
     @Test
     @DisplayName("0 이하의 수량으로 가격을 계산할 수 없다")
     void 영_이하의_수량으로_가격을_계산할_수_없다() {
         // When & Then
-        assertThrows(ProductException.class, () -> {
-            productOption.calculateTotalPrice(0);
-        });
+        assertThatThrownBy(() -> productOption.calculateTotalPrice(0))
+            .isInstanceOf(ProductException.class);
 
-        assertThrows(ProductException.class, () -> {
-            productOption.calculateTotalPrice(-3);
-        });
+        assertThatThrownBy(() -> productOption.calculateTotalPrice(-3))
+            .isInstanceOf(ProductException.class);
     }
 
     @Test
@@ -142,7 +129,7 @@ class ProductOptionTest {
         productOption.restoreStock(3);
 
         // Then
-        assertEquals(initialStock - 4, productOption.getStock()); // 10 - 5 - 2 + 3 = 6
+        assertThat(productOption.getStock()).isEqualTo(initialStock - 4);
     }
 
     @Test
@@ -155,10 +142,8 @@ class ProductOptionTest {
         productOption.reduceStock(3); // 3 - 3 = 0
 
         // Then
-        assertAll("재고 소진 검증",
-            () -> assertEquals(0, productOption.getStock()),
-            () -> assertFalse(productOption.hasStock(1)) // 재고 없음
-        );
+        assertThat(productOption.getStock()).isEqualTo(0);
+        assertThat(productOption.hasStock(1)).isFalse();
     }
 
     @Test
@@ -168,8 +153,7 @@ class ProductOptionTest {
         productOption.reduceStock(10); // 재고를 모두 소진
 
         // When & Then
-        assertThrows(ProductException.class, () -> {
-            productOption.reduceStock(1);
-        });
+        assertThatThrownBy(() -> productOption.reduceStock(1))
+            .isInstanceOf(ProductException.class);
     }
 }

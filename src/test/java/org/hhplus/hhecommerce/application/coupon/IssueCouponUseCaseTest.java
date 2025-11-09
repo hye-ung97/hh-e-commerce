@@ -15,7 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class IssueCouponUseCaseTest {
 
@@ -44,12 +44,10 @@ class IssueCouponUseCaseTest {
         IssueCouponResponse response = issueCouponUseCase.execute(userId, coupon.getId());
 
         // Then
-        assertAll("IssueCouponResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(coupon.getId(), response.couponId()),
-            () -> assertEquals("10% 할인", response.couponName()),
-            () -> assertTrue(response.message().contains("발급"))
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.couponId()).isEqualTo(coupon.getId());
+        assertThat(response.couponName()).isEqualTo("10% 할인");
+        assertThat(response.message()).contains("발급");
     }
 
     @Test
@@ -65,9 +63,8 @@ class IssueCouponUseCaseTest {
         issueCouponUseCase.execute(userId, coupon.getId());
 
         // When & Then
-        assertThrows(CouponException.class, () -> {
-            issueCouponUseCase.execute(userId, coupon.getId());
-        });
+        assertThatThrownBy(() -> issueCouponUseCase.execute(userId, coupon.getId()))
+            .isInstanceOf(CouponException.class);
     }
 
     @Test
@@ -82,18 +79,16 @@ class IssueCouponUseCaseTest {
         issueCouponUseCase.execute(1L, coupon.getId());
 
         // When & Then
-        assertThrows(Exception.class, () -> {
-            issueCouponUseCase.execute(2L, coupon.getId());
-        });
+        assertThatThrownBy(() -> issueCouponUseCase.execute(2L, coupon.getId()))
+            .isInstanceOf(Exception.class);
     }
 
     @Test
     @DisplayName("존재하지 않는 쿠폰은 발급할 수 없다")
     void 존재하지_않는_쿠폰은_발급할_수_없다() {
         // When & Then
-        assertThrows(CouponException.class, () -> {
-            issueCouponUseCase.execute(1L, 999L);
-        });
+        assertThatThrownBy(() -> issueCouponUseCase.execute(1L, 999L))
+            .isInstanceOf(CouponException.class);
     }
 
     @Test
@@ -134,11 +129,9 @@ class IssueCouponUseCaseTest {
         // Then
         Coupon updatedCoupon = couponRepository.findById(coupon.getId()).orElseThrow();
 
-        assertAll("동시성 제어 검증",
-            () -> assertEquals(totalQuantity, successCount.get()), // 정확히 10명만 발급 성공
-            () -> assertEquals(concurrentUsers - totalQuantity, failCount.get()), // 나머지 10명은 실패
-            () -> assertEquals(totalQuantity, updatedCoupon.getIssuedQuantity()) // 쿠폰의 발급 수량이 정확히 totalQuantity
-        );
+        assertThat(successCount.get()).isEqualTo(totalQuantity);
+        assertThat(failCount.get()).isEqualTo(concurrentUsers - totalQuantity);
+        assertThat(updatedCoupon.getIssuedQuantity()).isEqualTo(totalQuantity);
     }
 
     @Test
@@ -181,7 +174,8 @@ class IssueCouponUseCaseTest {
         // Then
         // 사용자의 쿠폰이 1개만 존재해야 함
         List<UserCoupon> userCoupons = userCouponRepository.findByUserId(userId);
-        assertEquals(1, userCoupons.size(), "동일 사용자는 같은 쿠폰을 1번만 발급받을 수 있어야 합니다. 실제: " + userCoupons.size());
+        assertThat(userCoupons).hasSize(1)
+            .withFailMessage("동일 사용자는 같은 쿠폰을 1번만 발급받을 수 있어야 합니다. 실제: " + userCoupons.size());
 
         // 성공 횟수 확인 (디버깅용)
         System.out.println("성공: " + successCount.get() + ", 실패: " + failCount.get());

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class GetAvailableCouponsUseCaseTest {
 
@@ -38,12 +38,10 @@ class GetAvailableCouponsUseCaseTest {
         CouponListResponse response = getAvailableCouponsUseCase.execute(0, 10);
 
         // Then
-        assertAll("CouponListResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(1, response.coupons().size()),
-            () -> assertEquals(1, response.totalCount()),
-            () -> assertEquals("10% 할인", response.coupons().get(0).name())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.coupons()).hasSize(1);
+        assertThat(response.totalCount()).isEqualTo(1);
+        assertThat(response.coupons().get(0).name()).isEqualTo("10% 할인");
     }
 
     @Test
@@ -59,10 +57,8 @@ class GetAvailableCouponsUseCaseTest {
         CouponListResponse response = getAvailableCouponsUseCase.execute(0, 10);
 
         // Then
-        assertAll("만료된 쿠폰 검증",
-            () -> assertEquals(0, response.coupons().size()),
-            () -> assertEquals(0, response.totalCount())
-        );
+        assertThat(response.coupons()).hasSize(0);
+        assertThat(response.totalCount()).isEqualTo(0);
     }
 
     // 테스트 전용 Mock Repository

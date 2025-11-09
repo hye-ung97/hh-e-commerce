@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class OrderTest {
 
@@ -35,16 +35,14 @@ class OrderTest {
         Order order = Order.create(user, List.of(item), 0);
 
         // Then
-        assertAll("주문 생성 검증",
-            () -> assertNotNull(order),
-            () -> assertEquals(user, order.getUser()),
-            () -> assertEquals(OrderStatus.PENDING, order.getStatus()),
-            () -> assertEquals(100000, order.getTotalAmount()), // 50000 * 2
-            () -> assertEquals(0, order.getDiscountAmount()),
-            () -> assertEquals(100000, order.getFinalAmount()),
-            () -> assertEquals(1, order.getOrderItems().size()),
-            () -> assertNotNull(order.getOrderedAt())
-        );
+        assertThat(order).isNotNull();
+        assertThat(order.getUser()).isEqualTo(user);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(order.getTotalAmount()).isEqualTo(100000); // 50000 * 2
+        assertThat(order.getDiscountAmount()).isEqualTo(0);
+        assertThat(order.getFinalAmount()).isEqualTo(100000);
+        assertThat(order.getOrderItems()).hasSize(1);
+        assertThat(order.getOrderedAt()).isNotNull();
     }
 
     @Test
@@ -57,11 +55,9 @@ class OrderTest {
         Order order = Order.create(user, List.of(item), 10000);
 
         // Then
-        assertAll("할인 금액 적용 검증",
-            () -> assertEquals(100000, order.getTotalAmount()), // 50000 * 2
-            () -> assertEquals(10000, order.getDiscountAmount()),
-            () -> assertEquals(90000, order.getFinalAmount()) // 100000 - 10000
-        );
+        assertThat(order.getTotalAmount()).isEqualTo(100000); // 50000 * 2
+        assertThat(order.getDiscountAmount()).isEqualTo(10000);
+        assertThat(order.getFinalAmount()).isEqualTo(90000); // 100000 - 10000
     }
 
     @Test
@@ -78,10 +74,8 @@ class OrderTest {
         Order order = Order.create(user, List.of(item1, item2), 0);
 
         // Then
-        assertAll("여러 상품 주문 검증",
-            () -> assertEquals(200000, order.getTotalAmount()), // (50000*2) + (100000*1)
-            () -> assertEquals(2, order.getOrderItems().size())
-        );
+        assertThat(order.getTotalAmount()).isEqualTo(200000); // (50000*2) + (100000*1)
+        assertThat(order.getOrderItems()).hasSize(2);
     }
 
     @Test
@@ -95,7 +89,7 @@ class OrderTest {
         order.confirm();
 
         // Then
-        assertEquals(OrderStatus.CONFIRMED, order.getStatus());
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
     }
 
     @Test
@@ -107,9 +101,8 @@ class OrderTest {
         order.confirm();
 
         // When & Then
-        assertThrows(IllegalStateException.class, () -> {
-            order.confirm();
-        });
+        assertThatThrownBy(() -> order.confirm())
+            .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -123,7 +116,7 @@ class OrderTest {
         order.cancel();
 
         // Then
-        assertEquals(OrderStatus.CANCELLED, order.getStatus());
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
     }
 
     @Test
@@ -138,7 +131,7 @@ class OrderTest {
         order.cancel();
 
         // Then
-        assertEquals(OrderStatus.CANCELLED, order.getStatus());
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
     }
 
     @Test
@@ -151,9 +144,8 @@ class OrderTest {
         order.complete();
 
         // When & Then
-        assertThrows(IllegalStateException.class, () -> {
-            order.cancel();
-        });
+        assertThatThrownBy(() -> order.cancel())
+            .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -165,9 +157,8 @@ class OrderTest {
         order.cancel();
 
         // When & Then
-        assertThrows(IllegalStateException.class, () -> {
-            order.cancel();
-        });
+        assertThatThrownBy(() -> order.cancel())
+            .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -182,7 +173,7 @@ class OrderTest {
         order.complete();
 
         // Then
-        assertEquals(OrderStatus.COMPLETED, order.getStatus());
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.COMPLETED);
     }
 
     @Test
@@ -193,9 +184,8 @@ class OrderTest {
         Order order = Order.create(user, List.of(item), 0);
 
         // When & Then
-        assertThrows(IllegalStateException.class, () -> {
-            order.complete();
-        });
+        assertThatThrownBy(() -> order.complete())
+            .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -208,6 +198,6 @@ class OrderTest {
         Order order = Order.create(user, List.of(item), 0);
 
         // Then
-        assertEquals(OrderStatus.PENDING, order.getStatus());
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
     }
 }

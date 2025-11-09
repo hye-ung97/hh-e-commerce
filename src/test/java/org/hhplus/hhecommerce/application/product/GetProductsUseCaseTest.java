@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class GetProductsUseCaseTest {
 
@@ -38,12 +38,10 @@ class GetProductsUseCaseTest {
         ProductListResponse response = getProductsUseCase.execute(0, 10);
 
         // Then
-        assertAll("ProductListResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertTrue(response.products().size() > 0),
-            () -> assertEquals(0, response.page()),
-            () -> assertEquals(10, response.size())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.products()).hasSizeGreaterThan(0);
+        assertThat(response.page()).isEqualTo(0);
+        assertThat(response.size()).isEqualTo(10);
     }
 
     @Test
@@ -65,10 +63,8 @@ class GetProductsUseCaseTest {
                 .findFirst()
                 .orElseThrow();
 
-        assertAll("재고와 최소 가격 검증",
-            () -> assertEquals(8, productSummary.stock()), // 5 + 3
-            () -> assertEquals(1000000, productSummary.price()) // 최소 가격
-        );
+        assertThat(productSummary.stock()).isEqualTo(8);
+        assertThat(productSummary.price()).isEqualTo(1000000);
     }
 
     @Test
@@ -85,11 +81,9 @@ class GetProductsUseCaseTest {
         ProductListResponse page2 = getProductsUseCase.execute(1, 5);
 
         // Then
-        assertAll("페이징 검증",
-            () -> assertEquals(5, page1.products().size()),
-            () -> assertEquals(5, page2.products().size()),
-            () -> assertTrue(page1.total() >= 15)
-        );
+        assertThat(page1.products()).hasSize(5);
+        assertThat(page2.products()).hasSize(5);
+        assertThat(page1.total()).isGreaterThanOrEqualTo(15);
     }
 
     // 테스트 전용 Mock Repository

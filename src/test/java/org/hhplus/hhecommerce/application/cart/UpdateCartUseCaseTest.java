@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class UpdateCartUseCaseTest {
 
@@ -50,10 +50,8 @@ class UpdateCartUseCaseTest {
         CartItemResponse response = updateCartUseCase.execute(cart.getId(), request);
 
         // Then
-        assertAll("수량 변경 검증",
-            () -> assertEquals(5, response.quantity()),
-            () -> assertEquals(7500000, response.totalPrice()) // 1500000 * 5
-        );
+        assertThat(response.quantity()).isEqualTo(5);
+        assertThat(response.totalPrice()).isEqualTo(7500000); // 1500000 * 5
     }
 
     @Test
@@ -71,9 +69,8 @@ class UpdateCartUseCaseTest {
         UpdateCartRequest request = new UpdateCartRequest(10);
 
         // When & Then
-        assertThrows(ProductException.class, () -> {
-            updateCartUseCase.execute(cart.getId(), request);
-        });
+        assertThatThrownBy(() -> updateCartUseCase.execute(cart.getId(), request))
+            .isInstanceOf(ProductException.class);
     }
 
     @Test
@@ -83,9 +80,8 @@ class UpdateCartUseCaseTest {
         UpdateCartRequest request = new UpdateCartRequest(5);
 
         // When & Then
-        assertThrows(CartException.class, () -> {
-            updateCartUseCase.execute(999L, request);
-        });
+        assertThatThrownBy(() -> updateCartUseCase.execute(999L, request))
+            .isInstanceOf(CartException.class);
     }
 
     // 테스트 전용 Mock Repository

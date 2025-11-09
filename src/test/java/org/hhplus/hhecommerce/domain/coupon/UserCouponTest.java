@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class UserCouponTest {
 
@@ -26,20 +26,18 @@ class UserCouponTest {
         UserCoupon newUserCoupon = new UserCoupon(1L, 100L, expiredAt);
 
         // Then
-        assertAll("사용자 쿠폰 생성 검증",
-            () -> assertEquals(1L, newUserCoupon.getUserId()),
-            () -> assertEquals(100L, newUserCoupon.getCouponId()),
-            () -> assertEquals(CouponStatus.AVAILABLE, newUserCoupon.getStatus()),
-            () -> assertEquals(expiredAt, newUserCoupon.getExpiredAt()),
-            () -> assertNull(newUserCoupon.getUsedAt())
-        );
+        assertThat(newUserCoupon.getUserId()).isEqualTo(1L);
+        assertThat(newUserCoupon.getCouponId()).isEqualTo(100L);
+        assertThat(newUserCoupon.getStatus()).isEqualTo(CouponStatus.AVAILABLE);
+        assertThat(newUserCoupon.getExpiredAt()).isEqualTo(expiredAt);
+        assertThat(newUserCoupon.getUsedAt()).isNull();
     }
 
     @Test
     @DisplayName("쿠폰을 생성하면 초기 상태는 AVAILABLE이다")
     void 쿠폰을_생성하면_초기_상태는_AVAILABLE이다() {
         // Then
-        assertEquals(CouponStatus.AVAILABLE, userCoupon.getStatus());
+        assertThat(userCoupon.getStatus()).isEqualTo(CouponStatus.AVAILABLE);
     }
 
     @Test
@@ -49,10 +47,8 @@ class UserCouponTest {
         userCoupon.use();
 
         // Then
-        assertAll("쿠폰 사용 검증",
-            () -> assertEquals(CouponStatus.USED, userCoupon.getStatus()),
-            () -> assertNotNull(userCoupon.getUsedAt())
-        );
+        assertThat(userCoupon.getStatus()).isEqualTo(CouponStatus.USED);
+        assertThat(userCoupon.getUsedAt()).isNotNull();
     }
 
     @Test
@@ -62,10 +58,10 @@ class UserCouponTest {
         userCoupon.use();
 
         // When & Then
-        assertThrows(IllegalStateException.class, () -> {
-            userCoupon.use();
-        });
-        assertEquals(CouponStatus.USED, userCoupon.getStatus());
+        assertThatThrownBy(() -> userCoupon.use())
+            .isInstanceOf(IllegalStateException.class);
+
+        assertThat(userCoupon.getStatus()).isEqualTo(CouponStatus.USED);
     }
 
     @Test
@@ -78,9 +74,7 @@ class UserCouponTest {
         userCoupon.use();
 
         // Then
-        assertAll("사용 시간 검증",
-            () -> assertNotNull(userCoupon.getUsedAt()),
-            () -> assertTrue(userCoupon.getUsedAt().isAfter(beforeUse) || userCoupon.getUsedAt().isEqual(beforeUse))
-        );
+        assertThat(userCoupon.getUsedAt()).isNotNull();
+        assertThat(userCoupon.getUsedAt()).isAfterOrEqualTo(beforeUse);
     }
 }

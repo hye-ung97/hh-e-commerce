@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class GetUserCouponsUseCaseTest {
 
@@ -48,11 +48,9 @@ class GetUserCouponsUseCaseTest {
         UserCouponListResponse response = getUserCouponsUseCase.execute(userId);
 
         // Then
-        assertAll("UserCouponListResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(2, response.coupons().size()),
-            () -> assertEquals(2, response.totalCount())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.coupons()).hasSize(2);
+        assertThat(response.totalCount()).isEqualTo(2);
     }
 
     // 테스트 전용 Mock Repository

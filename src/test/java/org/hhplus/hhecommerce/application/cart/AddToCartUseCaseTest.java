@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class AddToCartUseCaseTest {
 
@@ -46,13 +46,11 @@ class AddToCartUseCaseTest {
         CartItemResponse response = addToCartUseCase.execute(userId, request);
 
         // Then
-        assertAll("CartItemResponse 검증",
-            () -> assertNotNull(response),
-            () -> assertEquals(userId, response.userId()),
-            () -> assertEquals(option.getId(), response.productOptionId()),
-            () -> assertEquals(2, response.quantity()),
-            () -> assertEquals(3000000, response.totalPrice())
-        );
+        assertThat(response).isNotNull();
+        assertThat(response.userId()).isEqualTo(userId);
+        assertThat(response.productOptionId()).isEqualTo(option.getId());
+        assertThat(response.quantity()).isEqualTo(2);
+        assertThat(response.totalPrice()).isEqualTo(3000000);
     }
 
     @Test
@@ -73,10 +71,8 @@ class AddToCartUseCaseTest {
         CartItemResponse response = addToCartUseCase.execute(userId, request);
 
         // Then
-        assertAll("수량 증가 검증",
-            () -> assertEquals(5, response.quantity()), // 2 + 3
-            () -> assertEquals(7500000, response.totalPrice()) // 1500000 * 5
-        );
+        assertThat(response.quantity()).isEqualTo(5); // 2 + 3
+        assertThat(response.totalPrice()).isEqualTo(7500000); // 1500000 * 5
     }
 
     @Test
@@ -91,9 +87,8 @@ class AddToCartUseCaseTest {
         AddCartRequest request = new AddCartRequest(option.getId(), 10);
 
         // When & Then
-        assertThrows(ProductException.class, () -> {
-            addToCartUseCase.execute(userId, request);
-        });
+        assertThatThrownBy(() -> addToCartUseCase.execute(userId, request))
+            .isInstanceOf(ProductException.class);
     }
 
     @Test
@@ -104,9 +99,8 @@ class AddToCartUseCaseTest {
         AddCartRequest request = new AddCartRequest(999L, 2);
 
         // When & Then
-        assertThrows(ProductException.class, () -> {
-            addToCartUseCase.execute(userId, request);
-        });
+        assertThatThrownBy(() -> addToCartUseCase.execute(userId, request))
+            .isInstanceOf(ProductException.class);
     }
 
     // 테스트 전용 Mock Repository
