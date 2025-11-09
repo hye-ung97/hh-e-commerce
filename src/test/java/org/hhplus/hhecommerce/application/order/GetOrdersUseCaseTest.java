@@ -46,8 +46,8 @@ class GetOrdersUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(1, response.getOrders().size());
-        assertEquals(1, response.getTotal());
+        assertEquals(1, response.orders().size());
+        assertEquals(1, response.total());
     }
 
     // 테스트 전용 Mock Repository

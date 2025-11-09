@@ -47,10 +47,10 @@ class GetOrderDetailUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(order.getId(), response.getId());
-        assertEquals(user.getId(), response.getUserId());
-        assertEquals(100000, response.getTotalAmount());
-        assertEquals(1, response.getItems().size());
+        assertEquals(order.getId(), response.id());
+        assertEquals(user.getId(), response.userId());
+        assertEquals(100000, response.totalAmount());
+        assertEquals(1, response.items().size());
     }
 
     @Test

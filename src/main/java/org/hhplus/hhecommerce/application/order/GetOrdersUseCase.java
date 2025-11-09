@@ -28,9 +28,6 @@ public class GetOrdersUseCase {
                 ))
                 .collect(Collectors.toList());
 
-        return OrderListResponse.builder()
-                .orders(orderInfos)
-                .total(orderInfos.size())
-                .build();
+        return new OrderListResponse(orderInfos, 0, orderInfos.size(), orderInfos.size());
     }
 }
