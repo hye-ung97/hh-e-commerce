@@ -40,7 +40,6 @@ public class CreateOrderUseCase {
     private final CouponRepository couponRepository;
 
     public synchronized CreateOrderResponse execute(Long userId, CreateOrderRequest request) {
-        // 1. 사용자 조회 (없으면 자동 생성)
         User user = userRepository.findById(userId)
                 .orElseGet(() -> {
                     User newUser = new User("사용자" + userId, "user" + userId + "@example.com");
@@ -48,13 +47,11 @@ public class CreateOrderUseCase {
                     return userRepository.save(newUser);
                 });
 
-        // 2. 장바구니 조회
         List<Cart> carts = cartRepository.findByUserId(userId);
         if (carts.isEmpty()) {
             throw new OrderException(OrderErrorCode.EMPTY_CART);
         }
 
-        // 3. 주문 항목 생성 및 재고 차감
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (Cart cart : carts) {
@@ -69,10 +66,8 @@ public class CreateOrderUseCase {
             orderItems.add(orderItem);
         }
 
-        // 4. 주문 생성 (도메인 로직 사용) - 할인 전 금액 계산을 위해 먼저 생성
         Order order = Order.create(user, orderItems, 0);
 
-        // 5. 쿠폰 적용 (선택사항)
         int discountAmount = 0;
         if (request.getUserCouponId() != null) {
             UserCoupon userCoupon = userCouponRepository.findById(request.getUserCouponId())
@@ -95,11 +90,9 @@ public class CreateOrderUseCase {
             userCouponRepository.save(userCoupon);
         }
 
-        // 6. 주문에 할인 금액 적용 (재생성)
         order = Order.create(user, orderItems, discountAmount);
         orderRepository.save(order);
 
-        // 7. 포인트 차감
         Point point = pointRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     Point newPoint = new Point(user);
@@ -109,10 +102,8 @@ public class CreateOrderUseCase {
         point.deduct(order.getFinalAmount());
         pointRepository.save(point);
 
-        // 8. 장바구니 비우기
         cartRepository.deleteAllByUserId(userId);
 
-        // 9. 응답 생성
         List<CreateOrderResponse.OrderItemInfo> itemInfos = orderItems.stream()
                 .map(item -> new CreateOrderResponse.OrderItemInfo(
                         item.getProductOption().getProduct().getName(),
