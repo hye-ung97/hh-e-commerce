@@ -31,15 +31,16 @@ public class GetOrderDetailUseCase {
                 ))
                 .collect(Collectors.toList());
 
-        return OrderDetailResponse.builder()
-                .id(order.getId())
-                .userId(order.getUser().getId())
-                .status(order.getStatus().name())
-                .totalAmount(order.getTotalAmount())
-                .discountAmount(order.getDiscountAmount())
-                .finalAmount(order.getFinalAmount())
-                .items(items)
-                .createdAt(order.getOrderedAt())
-                .build();
+        return new OrderDetailResponse(
+                order.getId(),
+                order.getUser().getId(),
+                order.getStatus().name(),
+                order.getTotalAmount(),
+                order.getDiscountAmount(),
+                order.getFinalAmount(),
+                null,
+                items,
+                order.getOrderedAt()
+        );
     }
 }

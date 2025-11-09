@@ -114,16 +114,16 @@ public class CreateOrderUseCase {
                 ))
                 .collect(Collectors.toList());
 
-        return CreateOrderResponse.builder()
-                .id(order.getId())
-                .userId(user.getId())
-                .status(order.getStatus().name())
-                .totalAmount(order.getTotalAmount())
-                .discountAmount(order.getDiscountAmount())
-                .finalAmount(order.getFinalAmount())
-                .items(itemInfos)
-                .createdAt(order.getOrderedAt())
-                .message("주문이 완료되었습니다")
-                .build();
+        return new CreateOrderResponse(
+                order.getId(),
+                user.getId(),
+                order.getStatus().name(),
+                order.getTotalAmount(),
+                order.getDiscountAmount(),
+                order.getFinalAmount(),
+                itemInfos,
+                order.getOrderedAt(),
+                "주문이 완료되었습니다"
+        );
     }
 }
