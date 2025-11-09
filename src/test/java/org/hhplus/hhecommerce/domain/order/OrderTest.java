@@ -35,14 +35,16 @@ class OrderTest {
         Order order = Order.create(user, List.of(item), 0);
 
         // Then
-        assertNotNull(order);
-        assertEquals(user, order.getUser());
-        assertEquals(OrderStatus.PENDING, order.getStatus());
-        assertEquals(100000, order.getTotalAmount()); // 50000 * 2
-        assertEquals(0, order.getDiscountAmount());
-        assertEquals(100000, order.getFinalAmount());
-        assertEquals(1, order.getOrderItems().size());
-        assertNotNull(order.getOrderedAt());
+        assertAll("주문 생성 검증",
+            () -> assertNotNull(order),
+            () -> assertEquals(user, order.getUser()),
+            () -> assertEquals(OrderStatus.PENDING, order.getStatus()),
+            () -> assertEquals(100000, order.getTotalAmount()), // 50000 * 2
+            () -> assertEquals(0, order.getDiscountAmount()),
+            () -> assertEquals(100000, order.getFinalAmount()),
+            () -> assertEquals(1, order.getOrderItems().size()),
+            () -> assertNotNull(order.getOrderedAt())
+        );
     }
 
     @Test
@@ -55,9 +57,11 @@ class OrderTest {
         Order order = Order.create(user, List.of(item), 10000);
 
         // Then
-        assertEquals(100000, order.getTotalAmount()); // 50000 * 2
-        assertEquals(10000, order.getDiscountAmount());
-        assertEquals(90000, order.getFinalAmount()); // 100000 - 10000
+        assertAll("할인 금액 적용 검증",
+            () -> assertEquals(100000, order.getTotalAmount()), // 50000 * 2
+            () -> assertEquals(10000, order.getDiscountAmount()),
+            () -> assertEquals(90000, order.getFinalAmount()) // 100000 - 10000
+        );
     }
 
     @Test
@@ -74,8 +78,10 @@ class OrderTest {
         Order order = Order.create(user, List.of(item1, item2), 0);
 
         // Then
-        assertEquals(200000, order.getTotalAmount()); // (50000*2) + (100000*1)
-        assertEquals(2, order.getOrderItems().size());
+        assertAll("여러 상품 주문 검증",
+            () -> assertEquals(200000, order.getTotalAmount()), // (50000*2) + (100000*1)
+            () -> assertEquals(2, order.getOrderItems().size())
+        );
     }
 
     @Test

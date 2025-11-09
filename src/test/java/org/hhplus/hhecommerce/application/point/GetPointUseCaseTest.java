@@ -42,9 +42,11 @@ class GetPointUseCaseTest {
         PointResponse response = getPointUseCase.execute(user.getId());
 
         // Then
-        assertNotNull(response);
-        assertEquals(user.getId(), response.userId());
-        assertEquals(1000, response.amount());
+        assertAll("PointResponse 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(user.getId(), response.userId()),
+            () -> assertEquals(1000, response.amount())
+        );
     }
 
     @Test

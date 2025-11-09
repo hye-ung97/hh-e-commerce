@@ -27,11 +27,13 @@ class OrderItemTest {
         OrderItem orderItem = new OrderItem(option, 2, 50000);
 
         // Then
-        assertEquals(option, orderItem.getProductOption());
-        assertEquals(2, orderItem.getQuantity());
-        assertEquals(50000, orderItem.getUnitPrice());
-        assertEquals(100000, orderItem.getSubTotal()); // 50000 * 2
-        assertEquals(OrderItemStatus.ORDERED, orderItem.getStatus());
+        assertAll("주문 항목 생성 검증",
+            () -> assertEquals(option, orderItem.getProductOption()),
+            () -> assertEquals(2, orderItem.getQuantity()),
+            () -> assertEquals(50000, orderItem.getUnitPrice()),
+            () -> assertEquals(100000, orderItem.getSubTotal()), // 50000 * 2
+            () -> assertEquals(OrderItemStatus.ORDERED, orderItem.getStatus())
+        );
     }
 
     @Test
@@ -44,8 +46,10 @@ class OrderItemTest {
         int totalPrice = orderItem.getTotalPrice();
 
         // Then
-        assertEquals(150000, totalPrice); // 50000 * 3
-        assertEquals(orderItem.getSubTotal(), totalPrice);
+        assertAll("총 가격 계산 검증",
+            () -> assertEquals(150000, totalPrice), // 50000 * 3
+            () -> assertEquals(orderItem.getSubTotal(), totalPrice)
+        );
     }
 
     @Test
@@ -91,8 +95,10 @@ class OrderItemTest {
         OrderItem orderItem = new OrderItem(option, 1, 50000);
 
         // Then
-        assertEquals(1, orderItem.getQuantity());
-        assertEquals(50000, orderItem.getSubTotal());
+        assertAll("수량 1 주문 항목 검증",
+            () -> assertEquals(1, orderItem.getQuantity()),
+            () -> assertEquals(50000, orderItem.getSubTotal())
+        );
     }
 
     @Test
@@ -102,7 +108,9 @@ class OrderItemTest {
         OrderItem orderItem = new OrderItem(option, 100, 50000);
 
         // Then
-        assertEquals(100, orderItem.getQuantity());
-        assertEquals(5000000, orderItem.getSubTotal()); // 50000 * 100
+        assertAll("대량 수량 주문 항목 검증",
+            () -> assertEquals(100, orderItem.getQuantity()),
+            () -> assertEquals(5000000, orderItem.getSubTotal()) // 50000 * 100
+        );
     }
 }

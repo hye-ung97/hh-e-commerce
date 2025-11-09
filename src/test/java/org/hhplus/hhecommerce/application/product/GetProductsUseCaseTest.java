@@ -38,10 +38,12 @@ class GetProductsUseCaseTest {
         ProductListResponse response = getProductsUseCase.execute(0, 10);
 
         // Then
-        assertNotNull(response);
-        assertTrue(response.products().size() > 0);
-        assertEquals(0, response.page());
-        assertEquals(10, response.size());
+        assertAll("ProductListResponse 검증",
+            () -> assertNotNull(response),
+            () -> assertTrue(response.products().size() > 0),
+            () -> assertEquals(0, response.page()),
+            () -> assertEquals(10, response.size())
+        );
     }
 
     @Test
@@ -63,8 +65,10 @@ class GetProductsUseCaseTest {
                 .findFirst()
                 .orElseThrow();
 
-        assertEquals(8, productSummary.stock()); // 5 + 3
-        assertEquals(1000000, productSummary.price()); // 최소 가격
+        assertAll("재고와 최소 가격 검증",
+            () -> assertEquals(8, productSummary.stock()), // 5 + 3
+            () -> assertEquals(1000000, productSummary.price()) // 최소 가격
+        );
     }
 
     @Test
@@ -81,9 +85,11 @@ class GetProductsUseCaseTest {
         ProductListResponse page2 = getProductsUseCase.execute(1, 5);
 
         // Then
-        assertEquals(5, page1.products().size());
-        assertEquals(5, page2.products().size());
-        assertTrue(page1.total() >= 15);
+        assertAll("페이징 검증",
+            () -> assertEquals(5, page1.products().size()),
+            () -> assertEquals(5, page2.products().size()),
+            () -> assertTrue(page1.total() >= 15)
+        );
     }
 
     // 테스트 전용 Mock Repository

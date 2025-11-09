@@ -38,10 +38,12 @@ class GetAvailableCouponsUseCaseTest {
         CouponListResponse response = getAvailableCouponsUseCase.execute(0, 10);
 
         // Then
-        assertNotNull(response);
-        assertEquals(1, response.coupons().size());
-        assertEquals(1, response.totalCount());
-        assertEquals("10% 할인", response.coupons().get(0).name());
+        assertAll("CouponListResponse 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(1, response.coupons().size()),
+            () -> assertEquals(1, response.totalCount()),
+            () -> assertEquals("10% 할인", response.coupons().get(0).name())
+        );
     }
 
     @Test
@@ -57,8 +59,10 @@ class GetAvailableCouponsUseCaseTest {
         CouponListResponse response = getAvailableCouponsUseCase.execute(0, 10);
 
         // Then
-        assertEquals(0, response.coupons().size());
-        assertEquals(0, response.totalCount());
+        assertAll("만료된 쿠폰 검증",
+            () -> assertEquals(0, response.coupons().size()),
+            () -> assertEquals(0, response.totalCount())
+        );
     }
 
     // 테스트 전용 Mock Repository

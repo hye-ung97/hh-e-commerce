@@ -22,11 +22,13 @@ class ProductTest {
         Product newProduct = new Product("키보드", "기계식 키보드", "전자제품");
 
         // Then
-        assertNotNull(newProduct);
-        assertEquals("키보드", newProduct.getName());
-        assertEquals("기계식 키보드", newProduct.getDescription());
-        assertEquals("전자제품", newProduct.getCategory());
-        assertEquals(ProductStatus.ACTIVE, newProduct.getStatus()); // 기본값은 ACTIVE
+        assertAll("상품 생성 검증",
+            () -> assertNotNull(newProduct),
+            () -> assertEquals("키보드", newProduct.getName()),
+            () -> assertEquals("기계식 키보드", newProduct.getDescription()),
+            () -> assertEquals("전자제품", newProduct.getCategory()),
+            () -> assertEquals(ProductStatus.ACTIVE, newProduct.getStatus()) // 기본값은 ACTIVE
+        );
     }
 
     @Test
@@ -39,8 +41,10 @@ class ProductTest {
         product.activate();
 
         // Then
-        assertEquals(ProductStatus.ACTIVE, product.getStatus());
-        assertTrue(product.isActive());
+        assertAll("상품 활성화 검증",
+            () -> assertEquals(ProductStatus.ACTIVE, product.getStatus()),
+            () -> assertTrue(product.isActive())
+        );
     }
 
     @Test
@@ -50,8 +54,10 @@ class ProductTest {
         product.deactivate();
 
         // Then
-        assertEquals(ProductStatus.INACTIVE, product.getStatus());
-        assertFalse(product.isActive());
+        assertAll("상품 비활성화 검증",
+            () -> assertEquals(ProductStatus.INACTIVE, product.getStatus()),
+            () -> assertFalse(product.isActive())
+        );
     }
 
     @Test
@@ -93,8 +99,10 @@ class ProductTest {
         Product newProduct = new Product("마우스", "무선 마우스", "전자제품");
 
         // Then
-        assertEquals(ProductStatus.ACTIVE, newProduct.getStatus());
-        assertTrue(newProduct.isActive());
+        assertAll("새 상품 기본 상태 검증",
+            () -> assertEquals(ProductStatus.ACTIVE, newProduct.getStatus()),
+            () -> assertTrue(newProduct.isActive())
+        );
     }
 
     @Test
@@ -104,11 +112,13 @@ class ProductTest {
         Product newProduct = new Product(999L, "모니터", "4K 모니터", "전자제품", ProductStatus.INACTIVE);
 
         // Then
-        assertEquals(999L, newProduct.getId());
-        assertEquals("모니터", newProduct.getName());
-        assertEquals("4K 모니터", newProduct.getDescription());
-        assertEquals("전자제품", newProduct.getCategory());
-        assertEquals(ProductStatus.INACTIVE, newProduct.getStatus());
-        assertFalse(newProduct.isActive());
+        assertAll("ID 포함 생성자 검증",
+            () -> assertEquals(999L, newProduct.getId()),
+            () -> assertEquals("모니터", newProduct.getName()),
+            () -> assertEquals("4K 모니터", newProduct.getDescription()),
+            () -> assertEquals("전자제품", newProduct.getCategory()),
+            () -> assertEquals(ProductStatus.INACTIVE, newProduct.getStatus()),
+            () -> assertFalse(newProduct.isActive())
+        );
     }
 }

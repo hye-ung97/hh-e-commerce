@@ -49,11 +49,13 @@ class DeductPointUseCaseTest {
         DeductResponse response = deductPointUseCase.execute(user.getId(), request);
 
         // Then
-        assertNotNull(response);
-        assertEquals(user.getId(), response.userId());
-        assertEquals(7000, response.amount()); // 10000 - 3000
-        assertEquals(3000, response.deductedAmount());
-        assertEquals("Point deducted successfully", response.message());
+        assertAll("DeductResponse 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(user.getId(), response.userId()),
+            () -> assertEquals(7000, response.amount()), // 10000 - 3000
+            () -> assertEquals(3000, response.deductedAmount()),
+            () -> assertEquals("Point deducted successfully", response.message())
+        );
     }
 
     @Test
@@ -73,11 +75,12 @@ class DeductPointUseCaseTest {
         PointException exception = assertThrows(PointException.class, () -> {
             deductPointUseCase.execute(user.getId(), request);
         });
-        assertEquals(PointErrorCode.INSUFFICIENT_BALANCE, exception.getErrorCode());
-
-        // 포인트가 차감되지 않았는지 확인
         Point unchangedPoint = pointRepository.findByUserId(user.getId()).orElseThrow();
-        assertEquals(1000, unchangedPoint.getAmount());
+
+        assertAll("잔액 부족 검증",
+            () -> assertEquals(PointErrorCode.INSUFFICIENT_BALANCE, exception.getErrorCode()),
+            () -> assertEquals(1000, unchangedPoint.getAmount())
+        );
     }
 
     @Test

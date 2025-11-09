@@ -46,9 +46,11 @@ class DeleteCartUseCaseTest {
         DeleteCartResponse response = deleteCartUseCase.execute(cart.getId());
 
         // Then
-        assertNotNull(response);
-        assertEquals(cart.getId(), response.id());
-        assertTrue(response.message().contains("삭제"));
+        assertAll("DeleteCartResponse 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(cart.getId(), response.id()),
+            () -> assertTrue(response.message().contains("삭제"))
+        );
 
         // 실제로 삭제되었는지 확인
         Optional<Cart> deletedCart = cartRepository.findById(cart.getId());

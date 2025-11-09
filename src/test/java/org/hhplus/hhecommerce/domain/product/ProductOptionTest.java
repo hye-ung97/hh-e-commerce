@@ -22,9 +22,11 @@ class ProductOptionTest {
     @DisplayName("재고가 충분한지 확인할 수 있다")
     void 재고가_충분한지_확인할_수_있다() {
         // When & Then
-        assertTrue(productOption.hasStock(5));
-        assertTrue(productOption.hasStock(10));
-        assertFalse(productOption.hasStock(11));
+        assertAll("재고 충분성 검증",
+            () -> assertTrue(productOption.hasStock(5)),
+            () -> assertTrue(productOption.hasStock(10)),
+            () -> assertFalse(productOption.hasStock(11))
+        );
     }
 
     @Test
@@ -48,8 +50,10 @@ class ProductOptionTest {
             productOption.reduceStock(15);
         });
 
-        assertTrue(exception.getMessage().contains("재고"));
-        assertEquals(10, productOption.getStock()); // 재고는 그대로 유지
+        assertAll("재고 부족 검증",
+            () -> assertTrue(exception.getMessage().contains("재고")),
+            () -> assertEquals(10, productOption.getStock()) // 재고는 그대로 유지
+        );
     }
 
     @Test
@@ -107,8 +111,10 @@ class ProductOptionTest {
         int totalPrice2 = productOption.calculateTotalPrice(3);
 
         // Then
-        assertEquals(1500000, totalPrice1);
-        assertEquals(4500000, totalPrice2);
+        assertAll("총 가격 계산 검증",
+            () -> assertEquals(1500000, totalPrice1),
+            () -> assertEquals(4500000, totalPrice2)
+        );
     }
 
     @Test
@@ -149,8 +155,10 @@ class ProductOptionTest {
         productOption.reduceStock(3); // 3 - 3 = 0
 
         // Then
-        assertEquals(0, productOption.getStock());
-        assertFalse(productOption.hasStock(1)); // 재고 없음
+        assertAll("재고 소진 검증",
+            () -> assertEquals(0, productOption.getStock()),
+            () -> assertFalse(productOption.hasStock(1)) // 재고 없음
+        );
     }
 
     @Test

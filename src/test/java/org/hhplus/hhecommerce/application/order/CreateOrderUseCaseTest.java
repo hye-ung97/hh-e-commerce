@@ -78,13 +78,15 @@ class CreateOrderUseCaseTest {
         CreateOrderResponse response = createOrderUseCase.execute(user.getId(), request);
 
         // Then
-        assertNotNull(response);
-        assertEquals(user.getId(), response.userId());
-        assertEquals(100000, response.totalAmount()); // 50000 * 2
-        assertEquals(0, response.discountAmount());
-        assertEquals(100000, response.finalAmount());
-        assertEquals("주문이 완료되었습니다", response.message());
-        assertEquals(1, response.items().size());
+        assertAll("CreateOrderResponse 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(user.getId(), response.userId()),
+            () -> assertEquals(100000, response.totalAmount()), // 50000 * 2
+            () -> assertEquals(0, response.discountAmount()),
+            () -> assertEquals(100000, response.finalAmount()),
+            () -> assertEquals("주문이 완료되었습니다", response.message()),
+            () -> assertEquals(1, response.items().size())
+        );
     }
 
     @Test
@@ -243,9 +245,11 @@ class CreateOrderUseCaseTest {
         CreateOrderResponse response = createOrderUseCase.execute(user.getId(), request);
 
         // Then
-        assertEquals(100000, response.totalAmount()); // 50000 * 2
-        assertEquals(10000, response.discountAmount()); // 100000 * 10%
-        assertEquals(90000, response.finalAmount()); // 100000 - 10000
+        assertAll("쿠폰 적용 주문 검증",
+            () -> assertEquals(100000, response.totalAmount()), // 50000 * 2
+            () -> assertEquals(10000, response.discountAmount()), // 100000 * 10%
+            () -> assertEquals(90000, response.finalAmount()) // 100000 - 10000
+        );
     }
 
     @Test

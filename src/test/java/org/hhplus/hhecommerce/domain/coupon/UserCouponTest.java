@@ -26,11 +26,13 @@ class UserCouponTest {
         UserCoupon newUserCoupon = new UserCoupon(1L, 100L, expiredAt);
 
         // Then
-        assertEquals(1L, newUserCoupon.getUserId());
-        assertEquals(100L, newUserCoupon.getCouponId());
-        assertEquals(CouponStatus.AVAILABLE, newUserCoupon.getStatus());
-        assertEquals(expiredAt, newUserCoupon.getExpiredAt());
-        assertNull(newUserCoupon.getUsedAt());
+        assertAll("사용자 쿠폰 생성 검증",
+            () -> assertEquals(1L, newUserCoupon.getUserId()),
+            () -> assertEquals(100L, newUserCoupon.getCouponId()),
+            () -> assertEquals(CouponStatus.AVAILABLE, newUserCoupon.getStatus()),
+            () -> assertEquals(expiredAt, newUserCoupon.getExpiredAt()),
+            () -> assertNull(newUserCoupon.getUsedAt())
+        );
     }
 
     @Test
@@ -47,8 +49,10 @@ class UserCouponTest {
         userCoupon.use();
 
         // Then
-        assertEquals(CouponStatus.USED, userCoupon.getStatus());
-        assertNotNull(userCoupon.getUsedAt());
+        assertAll("쿠폰 사용 검증",
+            () -> assertEquals(CouponStatus.USED, userCoupon.getStatus()),
+            () -> assertNotNull(userCoupon.getUsedAt())
+        );
     }
 
     @Test
@@ -74,7 +78,9 @@ class UserCouponTest {
         userCoupon.use();
 
         // Then
-        assertNotNull(userCoupon.getUsedAt());
-        assertTrue(userCoupon.getUsedAt().isAfter(beforeUse) || userCoupon.getUsedAt().isEqual(beforeUse));
+        assertAll("사용 시간 검증",
+            () -> assertNotNull(userCoupon.getUsedAt()),
+            () -> assertTrue(userCoupon.getUsedAt().isAfter(beforeUse) || userCoupon.getUsedAt().isEqual(beforeUse))
+        );
     }
 }

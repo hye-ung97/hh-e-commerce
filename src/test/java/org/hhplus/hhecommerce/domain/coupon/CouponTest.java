@@ -26,13 +26,15 @@ class CouponTest {
                 now.minusDays(1), now.plusDays(30));
 
         // Then
-        assertEquals("10% 할인", coupon.getName());
-        assertEquals(CouponType.RATE, coupon.getDiscountType());
-        assertEquals(10, coupon.getDiscountValue());
-        assertEquals(5000, coupon.getMaxDiscountAmount());
-        assertEquals(10000, coupon.getMinOrderAmount());
-        assertEquals(100, coupon.getTotalQuantity());
-        assertEquals(0, coupon.getIssuedQuantity());
+        assertAll("쿠폰 생성 검증",
+            () -> assertEquals("10% 할인", coupon.getName()),
+            () -> assertEquals(CouponType.RATE, coupon.getDiscountType()),
+            () -> assertEquals(10, coupon.getDiscountValue()),
+            () -> assertEquals(5000, coupon.getMaxDiscountAmount()),
+            () -> assertEquals(10000, coupon.getMinOrderAmount()),
+            () -> assertEquals(100, coupon.getTotalQuantity()),
+            () -> assertEquals(0, coupon.getIssuedQuantity())
+        );
     }
 
     @Test
@@ -154,8 +156,10 @@ class CouponTest {
         int discount2 = coupon.calculateDiscount(100000);
 
         // Then
-        assertEquals(5000, discount1);
-        assertEquals(5000, discount2); // 주문 금액과 관계없이 고정 금액
+        assertAll("고정 금액 쿠폰 검증",
+            () -> assertEquals(5000, discount1),
+            () -> assertEquals(5000, discount2) // 주문 금액과 관계없이 고정 금액
+        );
     }
 
     @Test

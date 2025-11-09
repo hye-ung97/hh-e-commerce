@@ -48,9 +48,11 @@ class GetUserCouponsUseCaseTest {
         UserCouponListResponse response = getUserCouponsUseCase.execute(userId);
 
         // Then
-        assertNotNull(response);
-        assertEquals(2, response.coupons().size());
-        assertEquals(2, response.totalCount());
+        assertAll("UserCouponListResponse 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(2, response.coupons().size()),
+            () -> assertEquals(2, response.totalCount())
+        );
     }
 
     // 테스트 전용 Mock Repository

@@ -45,10 +45,12 @@ class GetCartListUseCaseTest {
         CartListResponse response = getCartListUseCase.execute(userId, 0, 10);
 
         // Then
-        assertNotNull(response);
-        assertEquals(1, response.items().size());
-        assertEquals(1, response.totalCount());
-        assertEquals(3000000, response.totalAmount()); // 1500000 * 2
+        assertAll("CartListResponse 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(1, response.items().size()),
+            () -> assertEquals(1, response.totalCount()),
+            () -> assertEquals(3000000, response.totalAmount()) // 1500000 * 2
+        );
     }
 
     @Test
@@ -61,10 +63,12 @@ class GetCartListUseCaseTest {
         CartListResponse response = getCartListUseCase.execute(userId, 0, 10);
 
         // Then
-        assertNotNull(response);
-        assertEquals(0, response.items().size());
-        assertEquals(0, response.totalCount());
-        assertEquals(0, response.totalAmount());
+        assertAll("빈 장바구니 검증",
+            () -> assertNotNull(response),
+            () -> assertEquals(0, response.items().size()),
+            () -> assertEquals(0, response.totalCount()),
+            () -> assertEquals(0, response.totalAmount())
+        );
     }
 
     @Test
@@ -89,9 +93,11 @@ class GetCartListUseCaseTest {
         CartListResponse response = getCartListUseCase.execute(userId, 0, 10);
 
         // Then
-        assertEquals(2, response.items().size());
-        assertEquals(2, response.totalCount());
-        assertEquals(3300000, response.totalAmount()); // (1500000*2) + (100000*3)
+        assertAll("여러 상품 장바구니 검증",
+            () -> assertEquals(2, response.items().size()),
+            () -> assertEquals(2, response.totalCount()),
+            () -> assertEquals(3300000, response.totalAmount()) // (1500000*2) + (100000*3)
+        );
     }
 
     // 테스트 전용 Mock Repository

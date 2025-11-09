@@ -27,8 +27,10 @@ class PointTest {
         Point newPoint = new Point(user);
 
         // Then
-        assertEquals(0, newPoint.getAmount());
-        assertEquals(user, newPoint.getUser());
+        assertAll("포인트 초기 상태 검증",
+            () -> assertEquals(0, newPoint.getAmount()),
+            () -> assertEquals(user, newPoint.getUser())
+        );
     }
 
     @Test
@@ -60,14 +62,15 @@ class PointTest {
         PointException exception1 = assertThrows(PointException.class, () -> {
             point.charge(0);
         });
-        assertEquals(PointErrorCode.INVALID_AMOUNT, exception1.getErrorCode());
-
         PointException exception2 = assertThrows(PointException.class, () -> {
             point.charge(-1000);
         });
-        assertEquals(PointErrorCode.INVALID_AMOUNT, exception2.getErrorCode());
 
-        assertEquals(0, point.getAmount()); // 잔액은 변하지 않음
+        assertAll("잘못된 충전 금액 검증",
+            () -> assertEquals(PointErrorCode.INVALID_AMOUNT, exception1.getErrorCode()),
+            () -> assertEquals(PointErrorCode.INVALID_AMOUNT, exception2.getErrorCode()),
+            () -> assertEquals(0, point.getAmount()) // 잔액은 변하지 않음
+        );
     }
 
     @Test
@@ -109,9 +112,11 @@ class PointTest {
             point.deduct(5000);
         });
 
-        assertEquals(PointErrorCode.INSUFFICIENT_BALANCE, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("부족"));
-        assertEquals(1000, point.getAmount()); // 잔액은 변하지 않음
+        assertAll("잔액 부족 검증",
+            () -> assertEquals(PointErrorCode.INSUFFICIENT_BALANCE, exception.getErrorCode()),
+            () -> assertTrue(exception.getMessage().contains("부족")),
+            () -> assertEquals(1000, point.getAmount()) // 잔액은 변하지 않음
+        );
     }
 
     @Test
@@ -124,14 +129,15 @@ class PointTest {
         PointException exception1 = assertThrows(PointException.class, () -> {
             point.deduct(0);
         });
-        assertEquals(PointErrorCode.INVALID_AMOUNT, exception1.getErrorCode());
-
         PointException exception2 = assertThrows(PointException.class, () -> {
             point.deduct(-1000);
         });
-        assertEquals(PointErrorCode.INVALID_AMOUNT, exception2.getErrorCode());
 
-        assertEquals(10000, point.getAmount()); // 잔액은 변하지 않음
+        assertAll("잘못된 차감 금액 검증",
+            () -> assertEquals(PointErrorCode.INVALID_AMOUNT, exception1.getErrorCode()),
+            () -> assertEquals(PointErrorCode.INVALID_AMOUNT, exception2.getErrorCode()),
+            () -> assertEquals(10000, point.getAmount()) // 잔액은 변하지 않음
+        );
     }
 
     @Test
@@ -164,18 +170,22 @@ class PointTest {
         point.charge(10000);
 
         // When & Then
-        assertTrue(point.hasEnoughPoint(5000));
-        assertTrue(point.hasEnoughPoint(10000));
-        assertFalse(point.hasEnoughPoint(10001));
-        assertFalse(point.hasEnoughPoint(20000));
+        assertAll("포인트 충분성 검증",
+            () -> assertTrue(point.hasEnoughPoint(5000)),
+            () -> assertTrue(point.hasEnoughPoint(10000)),
+            () -> assertFalse(point.hasEnoughPoint(10001)),
+            () -> assertFalse(point.hasEnoughPoint(20000))
+        );
     }
 
     @Test
     @DisplayName("포인트가 0일 때 충분한 포인트가 있는지 확인할 수 있다")
     void 포인트가_0일_때_충분한_포인트가_있는지_확인할_수_있다() {
         // When & Then
-        assertTrue(point.hasEnoughPoint(0));
-        assertFalse(point.hasEnoughPoint(1));
+        assertAll("잔액 0일 때 충분성 검증",
+            () -> assertTrue(point.hasEnoughPoint(0)),
+            () -> assertFalse(point.hasEnoughPoint(1))
+        );
     }
 
     @Test
@@ -198,8 +208,10 @@ class PointTest {
         Point newPoint = new Point(999L, user, 50000);
 
         // Then
-        assertEquals(999L, newPoint.getId());
-        assertEquals(user, newPoint.getUser());
-        assertEquals(50000, newPoint.getAmount());
+        assertAll("ID 포함 생성자 검증",
+            () -> assertEquals(999L, newPoint.getId()),
+            () -> assertEquals(user, newPoint.getUser()),
+            () -> assertEquals(50000, newPoint.getAmount())
+        );
     }
 }
