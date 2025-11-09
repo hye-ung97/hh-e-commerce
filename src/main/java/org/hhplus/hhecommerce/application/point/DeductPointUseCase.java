@@ -23,14 +23,14 @@ public class DeductPointUseCase {
 
         pointRepository.save(point);
 
-        return DeductResponse.builder()
-                .id(point.getId())
-                .userId(userId)
-                .amount(point.getAmount())
-                .deductedAmount(request.getAmount())
-                .message("Point deducted successfully")
-                .createdAt(point.getCreatedAt())
-                .updatedAt(point.getUpdatedAt())
-                .build();
+        return new DeductResponse(
+                point.getId(),
+                userId,
+                point.getAmount(),
+                point.getCreatedAt(),
+                point.getUpdatedAt(),
+                request.getAmount(),
+                "Point deducted successfully"
+        );
     }
 }

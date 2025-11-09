@@ -50,10 +50,10 @@ class DeductPointUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(user.getId(), response.getUserId());
-        assertEquals(7000, response.getAmount()); // 10000 - 3000
-        assertEquals(3000, response.getDeductedAmount());
-        assertEquals("Point deducted successfully", response.getMessage());
+        assertEquals(user.getId(), response.userId());
+        assertEquals(7000, response.amount()); // 10000 - 3000
+        assertEquals(3000, response.deductedAmount());
+        assertEquals("Point deducted successfully", response.message());
     }
 
     @Test
@@ -112,7 +112,7 @@ class DeductPointUseCaseTest {
         DeductResponse finalResponse = deductPointUseCase.execute(user.getId(), new DeductRequest(2000));
 
         // Then
-        assertEquals(10000, finalResponse.getAmount()); // 10000 - 3000 + 5000 - 2000
+        assertEquals(10000, finalResponse.amount()); // 10000 - 3000 + 5000 - 2000
     }
 
     // 테스트 전용 Mock Repository

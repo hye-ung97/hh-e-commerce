@@ -34,14 +34,14 @@ public class ChargePointUseCase {
 
         pointRepository.save(point);
 
-        return ChargeResponse.builder()
-                .id(point.getId())
-                .userId(userId)
-                .amount(point.getAmount())
-                .chargedAmount(request.getAmount())
-                .message("Point charged successfully")
-                .createdAt(point.getCreatedAt())
-                .updatedAt(point.getUpdatedAt())
-                .build();
+        return new ChargeResponse(
+                point.getId(),
+                userId,
+                point.getAmount(),
+                point.getCreatedAt(),
+                point.getUpdatedAt(),
+                request.getAmount(),
+                "Point charged successfully"
+        );
     }
 }
