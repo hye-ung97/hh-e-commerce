@@ -18,12 +18,12 @@ public class GetPointUseCase {
         Point point = pointRepository.findByUserId(userId)
                 .orElseThrow(() -> new PointException(PointErrorCode.POINT_NOT_FOUND));
 
-        return PointResponse.builder()
-                .id(point.getId())
-                .userId(userId)
-                .amount(point.getAmount())
-                .createdAt(point.getCreatedAt())
-                .updatedAt(point.getUpdatedAt())
-                .build();
+        return new PointResponse(
+                point.getId(),
+                userId,
+                point.getAmount(),
+                point.getCreatedAt(),
+                point.getUpdatedAt()
+        );
     }
 }

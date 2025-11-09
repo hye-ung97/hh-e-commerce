@@ -44,10 +44,10 @@ class ChargePointUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(user.getId(), response.getUserId());
-        assertEquals(5000, response.getAmount());
-        assertEquals(5000, response.getChargedAmount());
-        assertEquals("Point charged successfully", response.getMessage());
+        assertEquals(user.getId(), response.userId());
+        assertEquals(5000, response.amount());
+        assertEquals(5000, response.chargedAmount());
+        assertEquals("Point charged successfully", response.message());
     }
 
     @Test
@@ -64,8 +64,8 @@ class ChargePointUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(user.getId(), response.getUserId());
-        assertEquals(10000, response.getAmount());
+        assertEquals(user.getId(), response.userId());
+        assertEquals(10000, response.amount());
 
         // 포인트가 생성되었는지 확인
         Optional<Point> createdPoint = pointRepository.findByUserId(user.getId());
@@ -89,7 +89,7 @@ class ChargePointUseCaseTest {
         ChargeResponse response = chargePointUseCase.execute(user.getId(), new ChargeRequest(3000));
 
         // Then
-        assertEquals(6000, response.getAmount()); // 1000 + 2000 + 3000
+        assertEquals(6000, response.amount()); // 1000 + 2000 + 3000
     }
 
     // 테스트 전용 Mock Repository

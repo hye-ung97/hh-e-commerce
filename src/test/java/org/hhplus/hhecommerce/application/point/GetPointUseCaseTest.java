@@ -43,8 +43,8 @@ class GetPointUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(user.getId(), response.getUserId());
-        assertEquals(1000, response.getAmount());
+        assertEquals(user.getId(), response.userId());
+        assertEquals(1000, response.amount());
     }
 
     @Test
