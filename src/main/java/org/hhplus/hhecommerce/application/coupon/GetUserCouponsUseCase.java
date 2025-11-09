@@ -29,23 +29,20 @@ public class GetUserCouponsUseCase {
                     Coupon coupon = couponRepository.findById(uc.getCouponId())
                             .orElseThrow(() -> new CouponException(CouponErrorCode.COUPON_NOT_FOUND));
 
-                    return UserCouponListResponse.UserCouponInfo.builder()
-                            .id(uc.getId())
-                            .userId(uc.getUserId())
-                            .couponId(coupon.getId())
-                            .couponName(coupon.getName())
-                            .discountType(coupon.getDiscountType().name())
-                            .discountValue(coupon.getDiscountValue())
-                            .minOrderAmount(coupon.getMinOrderAmount())
-                            .isUsed(uc.getStatus() == CouponStatus.USED)
-                            .issuedAt(uc.getCreatedAt())
-                            .build();
+                    return new UserCouponListResponse.UserCouponInfo(
+                            uc.getId(),
+                            uc.getUserId(),
+                            coupon.getId(),
+                            coupon.getName(),
+                            coupon.getDiscountType().name(),
+                            coupon.getDiscountValue(),
+                            coupon.getMinOrderAmount(),
+                            uc.getStatus() == CouponStatus.USED,
+                            uc.getCreatedAt()
+                    );
                 })
                 .collect(Collectors.toList());
 
-        return UserCouponListResponse.builder()
-                .coupons(couponInfos)
-                .totalCount(couponInfos.size())
-                .build();
+        return new UserCouponListResponse(couponInfos, couponInfos.size());
     }
 }

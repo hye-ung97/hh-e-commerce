@@ -39,27 +39,23 @@ public class GetAvailableUserCouponsUseCase {
                     int discountAmount = coupon.calculateDiscount(orderAmount);
                     int finalAmount = orderAmount - discountAmount;
 
-                    return AvailableUserCouponListResponse.AvailableUserCouponInfo.builder()
-                            .id(uc.getId())
-                            .userId(uc.getUserId())
-                            .couponId(coupon.getId())
-                            .couponName(coupon.getName())
-                            .discountType(coupon.getDiscountType().name())
-                            .discountValue(coupon.getDiscountValue())
-                            .minOrderAmount(coupon.getMinOrderAmount())
-                            .status(uc.getStatus().name())
-                            .issuedAt(uc.getCreatedAt())
-                            .expiredAt(uc.getExpiredAt())
-                            .expectedDiscount(discountAmount)
-                            .finalAmount(finalAmount)
-                            .build();
+                    return new AvailableUserCouponListResponse.AvailableUserCouponInfo(
+                            uc.getId(),
+                            uc.getUserId(),
+                            coupon.getId(),
+                            coupon.getName(),
+                            coupon.getDiscountType().name(),
+                            coupon.getDiscountValue(),
+                            coupon.getMinOrderAmount(),
+                            uc.getStatus().name(),
+                            uc.getCreatedAt(),
+                            uc.getExpiredAt(),
+                            discountAmount,
+                            finalAmount
+                    );
                 })
                 .collect(Collectors.toList());
 
-        return AvailableUserCouponListResponse.builder()
-                .coupons(couponInfos)
-                .orderAmount(orderAmount)
-                .totalCount(couponInfos.size())
-                .build();
+        return new AvailableUserCouponListResponse(couponInfos, couponInfos.size(), orderAmount);
     }
 }
