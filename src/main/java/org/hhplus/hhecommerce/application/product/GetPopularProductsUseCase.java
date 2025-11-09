@@ -36,30 +36,32 @@ public class GetPopularProductsUseCase {
             popularProducts = topProductIds.stream()
                     .map(productId -> productRepository.findById(productId).orElse(null))
                     .filter(Objects::nonNull)
-                    .map(product -> PopularProductsResponse.PopularProduct.builder()
-                            .productId(product.getId())
-                            .name(product.getName())
-                            .totalSales(productSalesMap.getOrDefault(product.getId(), 0))
-                            .category(product.getCategory())
-                            .status(product.getStatus().name())
-                            .build())
+                    .map(product -> new PopularProductsResponse.PopularProduct(
+                            product.getId(),
+                            product.getName(),
+                            0, // price placeholder - to be added
+                            productSalesMap.getOrDefault(product.getId(), 0),
+                            product.getCategory(),
+                            product.getStatus().name()
+                    ))
                     .collect(Collectors.toList());
         } else {
             popularProducts = productRepository.findAll().stream()
                     .limit(5)
-                    .map(product -> PopularProductsResponse.PopularProduct.builder()
-                            .productId(product.getId())
-                            .name(product.getName())
-                            .totalSales(0)
-                            .category(product.getCategory())
-                            .status(product.getStatus().name())
-                            .build())
+                    .map(product -> new PopularProductsResponse.PopularProduct(
+                            product.getId(),
+                            product.getName(),
+                            0, // price placeholder - to be added
+                            0,
+                            product.getCategory(),
+                            product.getStatus().name()
+                    ))
                     .collect(Collectors.toList());
         }
 
-        return PopularProductsResponse.builder()
-                .products(popularProducts)
-                .totalCount(popularProducts.size())
-                .build();
+        return new PopularProductsResponse(
+                popularProducts,
+                popularProducts.size()
+        );
     }
 }

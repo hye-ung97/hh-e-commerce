@@ -39,9 +39,9 @@ class GetProductsUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertTrue(response.getProducts().size() > 0);
-        assertEquals(0, response.getPage());
-        assertEquals(10, response.getSize());
+        assertTrue(response.products().size() > 0);
+        assertEquals(0, response.page());
+        assertEquals(10, response.size());
     }
 
     @Test
@@ -58,13 +58,13 @@ class GetProductsUseCaseTest {
         ProductListResponse response = getProductsUseCase.execute(0, 10);
 
         // Then
-        ProductListResponse.ProductSummary productSummary = response.getProducts().stream()
-                .filter(p -> p.getName().equals("노트북"))
+        ProductListResponse.ProductSummary productSummary = response.products().stream()
+                .filter(p -> p.name().equals("노트북"))
                 .findFirst()
                 .orElseThrow();
 
-        assertEquals(8, productSummary.getStock()); // 5 + 3
-        assertEquals(1000000, productSummary.getPrice()); // 최소 가격
+        assertEquals(8, productSummary.stock()); // 5 + 3
+        assertEquals(1000000, productSummary.price()); // 최소 가격
     }
 
     @Test
@@ -81,9 +81,9 @@ class GetProductsUseCaseTest {
         ProductListResponse page2 = getProductsUseCase.execute(1, 5);
 
         // Then
-        assertEquals(5, page1.getProducts().size());
-        assertEquals(5, page2.getProducts().size());
-        assertTrue(page1.getTotal() >= 15);
+        assertEquals(5, page1.products().size());
+        assertEquals(5, page2.products().size());
+        assertTrue(page1.total() >= 15);
     }
 
     // 테스트 전용 Mock Repository
