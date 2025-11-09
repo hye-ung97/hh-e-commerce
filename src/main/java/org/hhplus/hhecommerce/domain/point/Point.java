@@ -1,7 +1,6 @@
 package org.hhplus.hhecommerce.domain.point;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 import org.hhplus.hhecommerce.domain.point.exception.PointErrorCode;
 import org.hhplus.hhecommerce.domain.point.exception.PointException;
@@ -10,7 +9,6 @@ import org.hhplus.hhecommerce.domain.user.User;
 @Getter
 public class Point extends BaseTimeEntity {
 
-    @Setter
     private Long id;
     private User user;
     private int amount;
@@ -89,5 +87,9 @@ public class Point extends BaseTimeEntity {
         if (amount < 1000) {
             throw new PointException(PointErrorCode.BELOW_MIN_USE_AMOUNT);
         }
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 }

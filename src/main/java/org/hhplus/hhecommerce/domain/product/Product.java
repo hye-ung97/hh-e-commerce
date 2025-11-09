@@ -1,13 +1,11 @@
 package org.hhplus.hhecommerce.domain.product;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 
 @Getter
 public class Product extends BaseTimeEntity {
 
-    @Setter
     private Long id;
     private String name;
     private String description;
@@ -48,5 +46,9 @@ public class Product extends BaseTimeEntity {
 
     public boolean isActive() {
         return this.status == ProductStatus.ACTIVE;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 }

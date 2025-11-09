@@ -1,12 +1,10 @@
 package org.hhplus.hhecommerce.domain.cart;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 
 @Getter
 public class Cart extends BaseTimeEntity {
-    @Setter
     private Long id;
     private Long userId;
     private Long productOptionId;
@@ -32,5 +30,9 @@ public class Cart extends BaseTimeEntity {
     public void addQuantity(int additionalQuantity) {
         this.quantity += additionalQuantity;
         updateTimestamp();
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 }

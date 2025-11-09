@@ -1,7 +1,6 @@
 package org.hhplus.hhecommerce.domain.product;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
@@ -9,7 +8,6 @@ import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 @Getter
 public class ProductOption extends BaseTimeEntity {
 
-    @Setter
     private Long id;
     private Product product;
     private String optionName;
@@ -72,5 +70,9 @@ public class ProductOption extends BaseTimeEntity {
             throw new ProductException(ProductErrorCode.INVALID_QUANTITY);
         }
         return price * quantity;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 }
