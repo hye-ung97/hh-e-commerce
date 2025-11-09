@@ -1,7 +1,6 @@
 package org.hhplus.hhecommerce.domain.order;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 import org.hhplus.hhecommerce.domain.user.User;
 import java.time.LocalDateTime;
@@ -9,7 +8,6 @@ import java.util.*;
 
 @Getter
 public class Order extends BaseTimeEntity {
-    @Setter
     private Long id;
     private User user;
     private final List<OrderItem> orderItems = new ArrayList<>();
@@ -72,5 +70,9 @@ public class Order extends BaseTimeEntity {
         }
         this.status = OrderStatus.COMPLETED;
         updateTimestamp();
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 }

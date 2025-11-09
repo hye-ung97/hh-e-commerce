@@ -1,7 +1,6 @@
 package org.hhplus.hhecommerce.domain.coupon;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponErrorCode;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponException;
@@ -10,7 +9,6 @@ import java.time.LocalDateTime;
 
 @Getter
 public class Coupon extends BaseTimeEntity {
-    @Setter
     private Long id;
     private String name;
     private CouponType discountType;
@@ -61,5 +59,9 @@ public class Coupon extends BaseTimeEntity {
             return discount;
         }
         return discountValue;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 }

@@ -1,15 +1,12 @@
 package org.hhplus.hhecommerce.domain.order;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
 
 @Getter
 public class OrderItem extends BaseTimeEntity {
-    @Setter
     private Long id;
-    @Setter
     private Order order;
     private ProductOption productOption;
     private int quantity;
@@ -38,5 +35,13 @@ public class OrderItem extends BaseTimeEntity {
         }
         this.status = OrderItemStatus.CANCELLED;
         updateTimestamp();
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setOrder(Order order) {
+        this.order = order;
     }
 }
