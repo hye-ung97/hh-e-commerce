@@ -42,11 +42,11 @@ class GetPopularProductsUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(3, response.getTotalCount());
-        assertEquals(3, response.getProducts().size());
+        assertEquals(3, response.totalCount());
+        assertEquals(3, response.products().size());
         // 판매량은 모두 0이어야 함
-        assertTrue(response.getProducts().stream()
-                .allMatch(product -> product.getTotalSales() == 0));
+        assertTrue(response.products().stream()
+                .allMatch(product -> product.totalSales() == 0));
     }
 
     @Test
@@ -90,18 +90,18 @@ class GetPopularProductsUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(3, response.getTotalCount());
-        assertEquals(3, response.getProducts().size());
+        assertEquals(3, response.totalCount());
+        assertEquals(3, response.products().size());
 
         // 판매량 순서 확인: 상품3(15) > 상품1(10) > 상품2(5)
-        assertEquals(product3.getId(), response.getProducts().get(0).getProductId());
-        assertEquals(15, response.getProducts().get(0).getTotalSales());
+        assertEquals(product3.getId(), response.products().get(0).productId());
+        assertEquals(15, response.products().get(0).totalSales());
 
-        assertEquals(product1.getId(), response.getProducts().get(1).getProductId());
-        assertEquals(10, response.getProducts().get(1).getTotalSales());
+        assertEquals(product1.getId(), response.products().get(1).productId());
+        assertEquals(10, response.products().get(1).totalSales());
 
-        assertEquals(product2.getId(), response.getProducts().get(2).getProductId());
-        assertEquals(5, response.getProducts().get(2).getTotalSales());
+        assertEquals(product2.getId(), response.products().get(2).productId());
+        assertEquals(5, response.products().get(2).totalSales());
     }
 
     @Test
@@ -136,8 +136,8 @@ class GetPopularProductsUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(5, response.getTotalCount()); // 최대 5개만
-        assertEquals(5, response.getProducts().size());
+        assertEquals(5, response.totalCount()); // 최대 5개만
+        assertEquals(5, response.products().size());
     }
 
     // 테스트 전용 Mock OrderRepository

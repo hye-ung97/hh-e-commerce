@@ -36,12 +36,12 @@ public class GetProductDetailUseCase {
                 ))
                 .collect(Collectors.toList());
 
-        return ProductDetailResponse.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .category(product.getCategory())
-                .status(product.getStatus().name())
-                .options(optionInfos)
-                .build();
+        return new ProductDetailResponse(
+                product.getId(),
+                product.getName(),
+                product.getCategory(),
+                product.getStatus().name(),
+                optionInfos
+        );
     }
 }

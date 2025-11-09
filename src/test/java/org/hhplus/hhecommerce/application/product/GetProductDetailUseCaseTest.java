@@ -42,10 +42,10 @@ class GetProductDetailUseCaseTest {
 
         // Then
         assertNotNull(response);
-        assertEquals(savedProduct.getId(), response.getId());
-        assertEquals("테스트 상품", response.getName());
-        assertEquals("전자제품", response.getCategory());
-        assertEquals(2, response.getOptions().size());
+        assertEquals(savedProduct.getId(), response.id());
+        assertEquals("테스트 상품", response.name());
+        assertEquals("전자제품", response.category());
+        assertEquals(2, response.options().size());
     }
 
     @Test

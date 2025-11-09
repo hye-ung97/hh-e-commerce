@@ -45,11 +45,11 @@ public class GetProductsUseCase {
                 })
                 .collect(Collectors.toList());
 
-        return ProductListResponse.builder()
-                .products(productSummaries)
-                .page(page)
-                .size(size)
-                .total(totalCount)
-                .build();
+        return new ProductListResponse(
+                productSummaries,
+                page,
+                size,
+                totalCount
+        );
     }
 }
