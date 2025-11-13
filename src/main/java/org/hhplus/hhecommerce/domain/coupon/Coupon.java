@@ -1,5 +1,6 @@
 package org.hhplus.hhecommerce.domain.coupon;
 
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponErrorCode;
@@ -8,16 +9,42 @@ import org.hhplus.hhecommerce.domain.coupon.exception.CouponException;
 import java.time.LocalDateTime;
 
 @Getter
+@Entity
+@Table(name = "COUPON", indexes = {
+    @Index(name = "idx_start_end_at", columnList = "start_at,end_at")
+})
 public class Coupon extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, length = 255)
     private String name;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "discount_type", nullable = false, length = 20)
     private CouponType discountType;
+
+    @Column(name = "discount_value", nullable = false)
     private int discountValue;
+
+    @Column(name = "max_discount_amount")
     private Integer maxDiscountAmount;  // 할인율인 경우 최대 할인 금액
+
+    @Column(name = "min_order_amount", nullable = false)
     private int minOrderAmount;
+
+    @Column(name = "total_quantity", nullable = false)
     private int totalQuantity;
+
+    @Column(name = "issued_quantity", nullable = false)
     private int issuedQuantity;
+
+    @Column(name = "start_at", nullable = false)
     private LocalDateTime startAt;
+
+    @Column(name = "end_at", nullable = false)
     private LocalDateTime endAt;
 
     protected Coupon() { super(); }
@@ -36,13 +63,13 @@ public class Coupon extends BaseTimeEntity {
         this.endAt = endAt;
     }
 
-    public synchronized boolean canIssue() {
+    public boolean canIssue() {
         LocalDateTime now = LocalDateTime.now();
         return now.isAfter(startAt) && now.isBefore(endAt)
                && issuedQuantity < totalQuantity;
     }
 
-    public synchronized void issue() {
+    public void issue() {
         if (!canIssue()) {
             throw new CouponException(CouponErrorCode.COUPON_UNAVAILABLE);
         }
