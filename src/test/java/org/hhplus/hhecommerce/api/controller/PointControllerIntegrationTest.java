@@ -3,16 +3,16 @@ package org.hhplus.hhecommerce.api.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hhplus.hhecommerce.api.dto.point.ChargeRequest;
 import org.hhplus.hhecommerce.api.dto.point.DeductRequest;
+import org.hhplus.hhecommerce.config.TestContainersConfig;
 import org.hhplus.hhecommerce.domain.point.Point;
-import org.hhplus.hhecommerce.domain.point.PointRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.point.PointRepository;
 import org.hhplus.hhecommerce.domain.user.User;
-import org.hhplus.hhecommerce.domain.user.UserRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,11 +22,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
 @DisplayName("PointController 통합 테스트")
-class PointControllerIntegrationTest {
+class PointControllerIntegrationTest extends TestContainersConfig {
 
     @Autowired
     private MockMvc mockMvc;
@@ -45,11 +44,12 @@ class PointControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 테스트 사용자 생성
-        testUser = new User("테스트유저", "test@example.com");
+        pointRepository.deleteAll();
+        userRepository.deleteAll();
+
+        testUser = new User("테스트유저", "point-test@example.com");
         testUser = userRepository.save(testUser);
 
-        // 테스트 포인트 생성 (초기 잔액 10,000원)
         testPoint = new Point(testUser);
         testPoint.charge(10000);
         testPoint = pointRepository.save(testPoint);
@@ -262,7 +262,6 @@ class PointControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.amount", is(25000))); // 30000 - 5000
 
-        // 최종 포인트 확인
         mockMvc.perform(get("/api/point")
                         .param("userId", testUser.getId().toString()))
                 .andDo(print())
@@ -284,22 +283,19 @@ class PointControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 사용자 - 포인트 충전 (자동 생성)")
+    @DisplayName("존재하지 않는 사용자 - 포인트 충전 (실패)")
     void chargePoint_userNotFound() throws Exception {
         // given
         Long nonExistentUserId = 99999L;
         ChargeRequest request = new ChargeRequest(5000);
 
-        // when & then - 사용자와 포인트가 자동으로 생성됨
+        // when & then - 사용자가 없으면 USER_NOT_FOUND 예외 발생
         mockMvc.perform(post("/api/point/charge")
                         .param("userId", nonExistentUserId.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId", is(nonExistentUserId.intValue())))
-                .andExpect(jsonPath("$.amount", is(5000)))
-                .andExpect(jsonPath("$.chargedAmount", is(5000)));
+                .andExpect(status().is4xxClientError());
     }
 
     @Test

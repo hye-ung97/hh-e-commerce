@@ -3,18 +3,18 @@ package org.hhplus.hhecommerce.api.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hhplus.hhecommerce.api.dto.cart.AddCartRequest;
 import org.hhplus.hhecommerce.api.dto.cart.UpdateCartRequest;
+import org.hhplus.hhecommerce.config.TestContainersConfig;
 import org.hhplus.hhecommerce.domain.cart.Cart;
-import org.hhplus.hhecommerce.domain.cart.CartRepository;
 import org.hhplus.hhecommerce.domain.product.Product;
+import org.hhplus.hhecommerce.infrastructure.repository.cart.CartRepository;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
-import org.hhplus.hhecommerce.domain.product.ProductRepository;
-import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.product.ProductRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.product.ProductOptionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,11 +24,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
 @DisplayName("CartController 통합 테스트")
-class CartControllerIntegrationTest {
+class CartControllerIntegrationTest extends TestContainersConfig {
 
     @Autowired
     private MockMvc mockMvc;
