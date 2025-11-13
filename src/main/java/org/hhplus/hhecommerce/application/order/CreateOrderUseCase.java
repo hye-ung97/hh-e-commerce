@@ -1,32 +1,40 @@
 package org.hhplus.hhecommerce.application.order;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderRequest;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderResponse;
 import org.hhplus.hhecommerce.domain.cart.Cart;
-import org.hhplus.hhecommerce.domain.cart.CartRepository;
-import org.hhplus.hhecommerce.domain.coupon.*;
+import org.hhplus.hhecommerce.domain.coupon.Coupon;
+import org.hhplus.hhecommerce.infrastructure.repository.cart.CartRepository;
+import org.hhplus.hhecommerce.domain.coupon.CouponStatus;
+import org.hhplus.hhecommerce.domain.coupon.UserCoupon;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponErrorCode;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponException;
+import org.hhplus.hhecommerce.infrastructure.repository.coupon.CouponRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.coupon.UserCouponRepository;
 import org.hhplus.hhecommerce.domain.order.Order;
 import org.hhplus.hhecommerce.domain.order.OrderItem;
-import org.hhplus.hhecommerce.domain.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.order.exception.OrderErrorCode;
+import org.hhplus.hhecommerce.infrastructure.repository.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.order.exception.OrderException;
 import org.hhplus.hhecommerce.domain.point.Point;
-import org.hhplus.hhecommerce.domain.point.PointRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.point.PointRepository;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
-import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
 import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.hhplus.hhecommerce.domain.user.User;
-import org.hhplus.hhecommerce.domain.user.UserRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.product.ProductOptionRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.user.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CreateOrderUseCase {
@@ -38,8 +46,15 @@ public class CreateOrderUseCase {
     private final UserCouponRepository userCouponRepository;
     private final ProductOptionRepository productOptionRepository;
     private final CouponRepository couponRepository;
+    private final TransactionTemplate transactionTemplate;
 
-    public synchronized CreateOrderResponse execute(Long userId, CreateOrderRequest request) {
+    public CreateOrderResponse execute(Long userId, CreateOrderRequest request) {
+        return transactionTemplate.execute(status ->
+            executeOrderLogic(userId, request)
+        );
+    }
+
+    private CreateOrderResponse executeOrderLogic(Long userId, CreateOrderRequest request) {
         User user = userRepository.findById(userId)
                 .orElseGet(() -> {
                     User newUser = new User("사용자" + userId, "user" + userId + "@example.com");
@@ -113,6 +128,9 @@ public class CreateOrderUseCase {
                         item.getSubTotal()
                 ))
                 .collect(Collectors.toList());
+
+        log.info("주문 생성 성공. orderId={}, userId={}, finalAmount={}",
+            order.getId(), userId, order.getFinalAmount());
 
         return new CreateOrderResponse(
                 order.getId(),

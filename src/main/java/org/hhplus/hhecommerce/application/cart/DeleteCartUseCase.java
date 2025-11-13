@@ -3,8 +3,8 @@ package org.hhplus.hhecommerce.application.cart;
 import lombok.RequiredArgsConstructor;
 import org.hhplus.hhecommerce.api.dto.cart.DeleteCartResponse;
 import org.hhplus.hhecommerce.domain.cart.Cart;
-import org.hhplus.hhecommerce.domain.cart.CartRepository;
 import org.hhplus.hhecommerce.domain.cart.exception.CartErrorCode;
+import org.hhplus.hhecommerce.infrastructure.repository.cart.CartRepository;
 import org.hhplus.hhecommerce.domain.cart.exception.CartException;
 import org.springframework.stereotype.Service;
 
