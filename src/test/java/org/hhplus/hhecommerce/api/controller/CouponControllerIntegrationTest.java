@@ -1,19 +1,20 @@
 package org.hhplus.hhecommerce.api.controller;
 
+import org.hhplus.hhecommerce.config.TestContainersConfig;
 import org.hhplus.hhecommerce.domain.coupon.Coupon;
-import org.hhplus.hhecommerce.domain.coupon.CouponRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.coupon.CouponRepository;
 import org.hhplus.hhecommerce.domain.coupon.CouponType;
 import org.hhplus.hhecommerce.domain.coupon.UserCoupon;
-import org.hhplus.hhecommerce.domain.coupon.UserCouponRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.coupon.UserCouponRepository;
 import org.hhplus.hhecommerce.domain.user.User;
-import org.hhplus.hhecommerce.domain.user.UserRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -30,11 +31,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
 @DisplayName("CouponController 통합 테스트")
-class CouponControllerIntegrationTest {
+class CouponControllerIntegrationTest extends TestContainersConfig {
 
     @Autowired
     private MockMvc mockMvc;
@@ -54,11 +54,13 @@ class CouponControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 테스트 사용자 생성
-        testUser = new User("테스트유저", "test@example.com");
+        userCouponRepository.deleteAll();
+        couponRepository.deleteAll();
+        userRepository.deleteAll();
+
+        testUser = new User("테스트유저", "coupon-test@example.com");
         testUser = userRepository.save(testUser);
 
-        // 할인율 쿠폰 생성 (10% 할인, 최대 5000원)
         rateCoupon = new Coupon(
                 "10% 할인 쿠폰",
                 CouponType.RATE,
@@ -71,7 +73,6 @@ class CouponControllerIntegrationTest {
         );
         rateCoupon = couponRepository.save(rateCoupon);
 
-        // 고정 금액 쿠폰 생성 (3000원 할인)
         amountCoupon = new Coupon(
                 "3000원 할인 쿠폰",
                 CouponType.AMOUNT,
@@ -274,8 +275,13 @@ class CouponControllerIntegrationTest {
     }
 
     @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @DisplayName("쿠폰 발급 - 동시성 테스트: 수량 제한")
     void issueCoupon_concurrency_quantityLimit() throws Exception {
+        userCouponRepository.deleteAll();
+        couponRepository.deleteAll();
+        userRepository.deleteAll();
+
         // given - 수량이 제한된 쿠폰 생성 (총 10개)
         Coupon limitedCoupon = new Coupon(
                 "한정 쿠폰",
@@ -310,13 +316,16 @@ class CouponControllerIntegrationTest {
                     mockMvc.perform(post("/api/coupons/{couponId}/issue", finalCouponId)
                                     .param("userId", user.getId().toString()))
                             .andDo(result -> {
-                                if (result.getResponse().getStatus() == 200) {
+                                int status = result.getResponse().getStatus();
+                                if (status == 200) {
                                     successCount.incrementAndGet();
                                 } else {
+                                    System.err.println("Failed request - Status: " + status + ", Response: " + result.getResponse().getContentAsString());
                                     failCount.incrementAndGet();
                                 }
                             });
                 } catch (Exception e) {
+                    System.err.println("Exception during request: " + e.getMessage());
                     failCount.incrementAndGet();
                 } finally {
                     latch.countDown();
@@ -329,22 +338,32 @@ class CouponControllerIntegrationTest {
 
         // then - 정확히 10개만 발급되어야 함
         Coupon updatedCoupon = couponRepository.findById(finalCouponId).orElseThrow();
-        assertThat(updatedCoupon.getIssuedQuantity()).isEqualTo(10);
-        assertThat(successCount.get()).isEqualTo(10);
-        assertThat(failCount.get()).isEqualTo(10);
 
-        // 실제 발급된 사용자 쿠폰 수 확인
         List<UserCoupon> issuedCoupons = users.stream()
                 .flatMap(user -> userCouponRepository.findByUserId(user.getId()).stream())
                 .filter(uc -> uc.getCouponId().equals(finalCouponId))
                 .toList();
+
         assertThat(issuedCoupons).hasSize(10);
+        assertThat(updatedCoupon.getIssuedQuantity()).isEqualTo(10);
+
+        assertThat(successCount.get() + failCount.get()).isEqualTo(20); // 모든 요청이 완료됨
+        assertThat(successCount.get()).isEqualTo(10); // 10개 성공
+        assertThat(failCount.get()).isEqualTo(10); // 10개 실패
     }
 
     @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @DisplayName("쿠폰 발급 - 동시성 테스트: 동일 사용자 중복 발급 방지")
     void issueCoupon_concurrency_preventDuplicateIssue() throws Exception {
-        // given - 쿠폰 생성
+        userCouponRepository.deleteAll();
+        couponRepository.deleteAll();
+        userRepository.deleteAll();
+
+        // given - 테스트용 사용자 및 쿠폰 생성 (setUp의 testUser 대신 별도 생성)
+        User testUserForConcurrency = new User("동시성테스트유저", "concurrency@example.com");
+        testUserForConcurrency = userRepository.save(testUserForConcurrency);
+
         Coupon testCoupon = new Coupon(
                 "테스트 쿠폰",
                 CouponType.AMOUNT,
@@ -364,18 +383,18 @@ class CouponControllerIntegrationTest {
         AtomicInteger successCount = new AtomicInteger(0);
 
         Long finalCouponId = testCoupon.getId();
+        Long finalUserId = testUserForConcurrency.getId();
         for (int i = 0; i < numberOfThreads; i++) {
             executorService.submit(() -> {
                 try {
                     mockMvc.perform(post("/api/coupons/{couponId}/issue", finalCouponId)
-                                    .param("userId", testUser.getId().toString()))
+                                    .param("userId", finalUserId.toString()))
                             .andDo(result -> {
                                 if (result.getResponse().getStatus() == 200) {
                                     successCount.incrementAndGet();
                                 }
                             });
                 } catch (Exception e) {
-                    // 예외 무시
                 } finally {
                     latch.countDown();
                 }
@@ -388,8 +407,7 @@ class CouponControllerIntegrationTest {
         // then - 정확히 1개만 발급되어야 함
         assertThat(successCount.get()).isEqualTo(1);
 
-        // 실제 발급된 쿠폰 수 확인
-        List<UserCoupon> userCoupons = userCouponRepository.findByUserId(testUser.getId());
+        List<UserCoupon> userCoupons = userCouponRepository.findByUserId(finalUserId);
         long count = userCoupons.stream()
                 .filter(uc -> uc.getCouponId().equals(finalCouponId))
                 .count();

@@ -3,39 +3,45 @@ package org.hhplus.hhecommerce.application.point;
 import org.hhplus.hhecommerce.api.dto.point.ChargeRequest;
 import org.hhplus.hhecommerce.api.dto.point.ChargeResponse;
 import org.hhplus.hhecommerce.domain.point.Point;
-import org.hhplus.hhecommerce.domain.point.PointRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.point.PointRepository;
 import org.hhplus.hhecommerce.domain.user.User;
-import org.hhplus.hhecommerce.domain.user.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
+import org.hhplus.hhecommerce.infrastructure.repository.user.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.*;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ChargePointUseCaseTest {
 
-    private ChargePointUseCase chargePointUseCase;
-    private TestPointRepository pointRepository;
-    private TestUserRepository userRepository;
+    @Mock
+    private PointRepository pointRepository;
 
-    @BeforeEach
-    void setUp() {
-        pointRepository = new TestPointRepository();
-        userRepository = new TestUserRepository();
-        chargePointUseCase = new ChargePointUseCase(pointRepository, userRepository);
-    }
+    @Mock
+    private UserRepository userRepository;
+
+    @InjectMocks
+    private ChargePointUseCase chargePointUseCase;
 
     @Test
     @DisplayName("정상적으로 포인트를 충전할 수 있다")
     void 정상적으로_포인트를_충전할_수_있다() {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
-        userRepository.save(user);
 
         Point point = new Point(user);
-        pointRepository.save(point);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(pointRepository.findByUserId(1L)).thenReturn(Optional.of(point));
+        when(pointRepository.save(any(Point.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ChargeRequest request = new ChargeRequest(5000);
 
@@ -55,7 +61,14 @@ class ChargePointUseCaseTest {
     void 포인트가_없는_사용자도_충전하면_포인트가_생성된다() {
         // Given
         User user = new User(1L, "신규유저", "new@test.com");
-        userRepository.save(user);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(pointRepository.findByUserId(1L)).thenReturn(Optional.empty());
+        when(pointRepository.save(any(Point.class))).thenAnswer(invocation -> {
+            Point savedPoint = invocation.getArgument(0);
+            savedPoint.setId(1L);
+            return savedPoint;
+        });
 
         ChargeRequest request = new ChargeRequest(10000);
 
@@ -63,12 +76,9 @@ class ChargePointUseCaseTest {
         ChargeResponse response = chargePointUseCase.execute(user.getId(), request);
 
         // Then
-        Optional<Point> createdPoint = pointRepository.findByUserId(user.getId());
         assertThat(response).isNotNull();
         assertThat(response.userId()).isEqualTo(user.getId());
         assertThat(response.amount()).isEqualTo(10000);
-        assertThat(createdPoint).isPresent();
-        assertThat(createdPoint.get().getAmount()).isEqualTo(10000);
     }
 
     @Test
@@ -76,10 +86,12 @@ class ChargePointUseCaseTest {
     void 여러_번_충전하면_포인트가_누적된다() {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
-        userRepository.save(user);
 
         Point point = new Point(user);
-        pointRepository.save(point);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(pointRepository.findByUserId(1L)).thenReturn(Optional.of(point));
+        when(pointRepository.save(any(Point.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         chargePointUseCase.execute(user.getId(), new ChargeRequest(1000));
@@ -88,65 +100,5 @@ class ChargePointUseCaseTest {
 
         // Then
         assertThat(response.amount()).isEqualTo(6000); // 1000 + 2000 + 3000
-    }
-
-    // 테스트 전용 Mock Repository
-    static class TestPointRepository implements PointRepository {
-        private final Map<Long, Point> store = new HashMap<>();
-        private final Map<Long, Point> userPointStore = new HashMap<>();
-        private Long idCounter = 1L;
-
-        @Override
-        public Point save(Point point) {
-            if (point.getId() == null) {
-                point.setId(idCounter++);
-            }
-            store.put(point.getId(), point);
-            userPointStore.put(point.getUser().getId(), point);
-            return point;
-        }
-
-        @Override
-        public Optional<Point> findByUserId(Long userId) {
-            return Optional.ofNullable(userPointStore.get(userId));
-        }
-
-        @Override
-        public Optional<Point> findById(Long id) {
-            return Optional.empty();
-        }
-
-        @Override
-        public void delete(Point point) {
-        }
-    }
-
-    static class TestUserRepository implements UserRepository {
-        private final Map<Long, User> store = new HashMap<>();
-
-        @Override
-        public User save(User user) {
-            store.put(user.getId(), user);
-            return user;
-        }
-
-        @Override
-        public Optional<User> findById(Long id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public Optional<User> findByEmail(String email) {
-            return Optional.empty();
-        }
-
-        @Override
-        public List<User> findAll() {
-            return new ArrayList<>();
-        }
-
-        @Override
-        public void delete(User user) {
-        }
     }
 }

@@ -3,31 +3,33 @@ package org.hhplus.hhecommerce.application.order;
 import org.hhplus.hhecommerce.api.dto.order.OrderDetailResponse;
 import org.hhplus.hhecommerce.domain.order.Order;
 import org.hhplus.hhecommerce.domain.order.OrderItem;
-import org.hhplus.hhecommerce.domain.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.order.exception.OrderException;
+import org.hhplus.hhecommerce.infrastructure.repository.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
 import org.hhplus.hhecommerce.domain.product.ProductStatus;
 import org.hhplus.hhecommerce.domain.user.User;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class GetOrderDetailUseCaseTest {
 
-    private GetOrderDetailUseCase getOrderDetailUseCase;
-    private TestOrderRepository orderRepository;
+    @Mock
+    private OrderRepository orderRepository;
 
-    @BeforeEach
-    void setUp() {
-        orderRepository = new TestOrderRepository();
-        getOrderDetailUseCase = new GetOrderDetailUseCase(orderRepository);
-    }
+    @InjectMocks
+    private GetOrderDetailUseCase getOrderDetailUseCase;
 
     @Test
     @DisplayName("주문 상세를 조회할 수 있다")
@@ -40,7 +42,9 @@ class GetOrderDetailUseCaseTest {
 
         OrderItem item = new OrderItem(option, 2, 50000);
         Order order = Order.create(user, List.of(item), 0);
-        orderRepository.save(order);
+        order.setId(1L);
+
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
 
         // When
         OrderDetailResponse response = getOrderDetailUseCase.execute(order.getId());
@@ -56,40 +60,11 @@ class GetOrderDetailUseCaseTest {
     @Test
     @DisplayName("존재하지 않는 주문을 조회하면 예외가 발생한다")
     void 존재하지_않는_주문을_조회하면_예외가_발생한다() {
+        // Given
+        when(orderRepository.findById(999L)).thenReturn(Optional.empty());
+
         // When & Then
         assertThatThrownBy(() -> getOrderDetailUseCase.execute(999L))
             .isInstanceOf(OrderException.class);
-    }
-
-    // 테스트 전용 Mock Repository
-    static class TestOrderRepository implements OrderRepository {
-        private final Map<Long, Order> store = new HashMap<>();
-        private Long idCounter = 1L;
-
-        @Override
-        public Order save(Order order) {
-            if (order.getId() == null) {
-                order.setId(idCounter++);
-            }
-            store.put(order.getId(), order);
-            return order;
-        }
-
-        @Override
-        public Optional<Order> findById(Long id) {
-            return Optional.ofNullable(store.get(id));
-        }
-
-        @Override
-        public List<Order> findByUserId(Long userId) {
-            return store.values().stream()
-                    .filter(o -> o.getUser().getId().equals(userId))
-                    .collect(Collectors.toList());
-        }
-
-        @Override
-        public List<Order> findAll() {
-            return new ArrayList<>(store.values());
-        }
     }
 }
