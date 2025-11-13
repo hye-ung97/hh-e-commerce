@@ -3,7 +3,8 @@ package org.hhplus.hhecommerce.application.coupon;
 import lombok.RequiredArgsConstructor;
 import org.hhplus.hhecommerce.api.dto.coupon.CouponListResponse;
 import org.hhplus.hhecommerce.domain.coupon.Coupon;
-import org.hhplus.hhecommerce.domain.coupon.CouponRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.coupon.CouponRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,7 +20,7 @@ public class GetAvailableCouponsUseCase {
     public CouponListResponse execute(int page, int size) {
         LocalDateTime now = LocalDateTime.now();
 
-        List<Coupon> availableCoupons = couponRepository.findAvailableCoupons(now, page, size);
+        List<Coupon> availableCoupons = couponRepository.findAvailableCoupons(now, PageRequest.of(page, size));
         int totalCount = couponRepository.countAvailableCoupons(now);
 
         List<CouponListResponse.CouponInfo> couponInfos = availableCoupons.stream()

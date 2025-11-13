@@ -4,9 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.hhplus.hhecommerce.api.dto.point.ChargeRequest;
 import org.hhplus.hhecommerce.api.dto.point.ChargeResponse;
 import org.hhplus.hhecommerce.domain.point.Point;
-import org.hhplus.hhecommerce.domain.point.PointRepository;
+import org.hhplus.hhecommerce.infrastructure.repository.point.PointRepository;
 import org.hhplus.hhecommerce.domain.user.User;
-import org.hhplus.hhecommerce.domain.user.UserRepository;
+import org.hhplus.hhecommerce.domain.user.exception.UserErrorCode;
+import org.hhplus.hhecommerce.infrastructure.repository.user.UserRepository;
+import org.hhplus.hhecommerce.domain.user.exception.UserException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,11 +20,7 @@ public class ChargePointUseCase {
 
     public ChargeResponse execute(Long userId, ChargeRequest request) {
         User user = userRepository.findById(userId)
-                .orElseGet(() -> {
-                    User newUser = new User("사용자" + userId, "user" + userId + "@example.com");
-                    newUser.setId(userId);
-                    return userRepository.save(newUser);
-                });
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         Point point = pointRepository.findByUserId(userId)
                 .orElseGet(() -> {
