@@ -1,5 +1,6 @@
 package org.hhplus.hhecommerce.domain.order;
 
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 import org.hhplus.hhecommerce.domain.user.User;
@@ -7,14 +8,40 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Getter
+@Entity
+@Table(name = "`ORDER`", indexes = {
+    @Index(name = "idx_user_id", columnList = "user_id"),
+    @Index(name = "idx_status", columnList = "status"),
+    @Index(name = "idx_created_at", columnList = "created_at"),
+    @Index(name = "idx_created_at_status", columnList = "created_at,status")
+})
 public class Order extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User user;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<OrderItem> orderItems = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private OrderStatus status;
+
+    @Column(name = "total_amount", nullable = false)
     private int totalAmount;
+
+    @Column(name = "discount_amount", nullable = false)
     private int discountAmount;
+
+    @Column(name = "final_amount", nullable = false)
     private int finalAmount;
+
+    @Column(name = "ordered_at", nullable = false)
     private LocalDateTime orderedAt;
 
     protected Order() { super(); }

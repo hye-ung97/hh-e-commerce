@@ -1,5 +1,6 @@
 package org.hhplus.hhecommerce.domain.point;
 
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 import org.hhplus.hhecommerce.domain.point.exception.PointErrorCode;
@@ -7,11 +8,30 @@ import org.hhplus.hhecommerce.domain.point.exception.PointException;
 import org.hhplus.hhecommerce.domain.user.User;
 
 @Getter
+@Entity
+@Table(name = "POINT",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_user_id", columnNames = {"user_id"})
+    },
+    indexes = {
+        @Index(name = "idx_user_id", columnList = "user_id")
+    }
+)
 public class Point extends BaseTimeEntity {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User user;
+
+    @Column(nullable = false)
     private int amount;
+
+    @Version
+    private Long version;
 
     protected Point() {
         super();

@@ -1,17 +1,44 @@
 package org.hhplus.hhecommerce.domain.order;
 
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
 
 @Getter
+@Entity
+@Table(name = "ORDER_ITEM", indexes = {
+    @Index(name = "idx_order_id", columnList = "order_id"),
+    @Index(name = "idx_product_option_id", columnList = "product_option_id"),
+    @Index(name = "idx_status", columnList = "status"),
+    @Index(name = "idx_created_at", columnList = "created_at"),
+    @Index(name = "idx_order_product_quantity", columnList = "order_id,product_option_id,quantity")
+})
 public class OrderItem extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_option_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private ProductOption productOption;
+
+    @Column(nullable = false)
     private int quantity;
+
+    @Column(name = "unit_price", nullable = false)
     private int unitPrice;
+
+    @Column(name = "sub_total", nullable = false)
     private int subTotal;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private OrderItemStatus status;
 
     protected OrderItem() { super(); }

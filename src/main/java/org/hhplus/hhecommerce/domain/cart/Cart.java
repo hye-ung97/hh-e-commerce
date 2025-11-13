@@ -1,13 +1,32 @@
 package org.hhplus.hhecommerce.domain.cart;
 
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 
 @Getter
+@Entity
+@Table(name = "CART",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_user_product_option", columnNames = {"user_id", "product_option_id"})
+    },
+    indexes = {
+        @Index(name = "idx_user_id", columnList = "user_id")
+    }
+)
 public class Cart extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    @Column(name = "product_option_id", nullable = false)
     private Long productOptionId;
+
+    @Column(nullable = false)
     private int quantity;
 
     protected Cart() { super(); }
