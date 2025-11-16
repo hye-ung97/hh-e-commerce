@@ -50,7 +50,7 @@ class PointControllerIntegrationTest extends TestContainersConfig {
         testUser = new User("테스트유저", "point-test@example.com");
         testUser = userRepository.save(testUser);
 
-        testPoint = new Point(testUser);
+        testPoint = new Point(testUser.getId());
         testPoint.charge(10000);
         testPoint = pointRepository.save(testPoint);
     }

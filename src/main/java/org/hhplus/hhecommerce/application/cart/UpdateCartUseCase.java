@@ -7,8 +7,10 @@ import org.hhplus.hhecommerce.domain.cart.Cart;
 import org.hhplus.hhecommerce.domain.cart.CartRepository;
 import org.hhplus.hhecommerce.domain.cart.exception.CartErrorCode;
 import org.hhplus.hhecommerce.domain.cart.exception.CartException;
+import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
 import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
+import org.hhplus.hhecommerce.domain.product.ProductRepository;
 import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ public class UpdateCartUseCase {
 
     private final CartRepository cartRepository;
     private final ProductOptionRepository productOptionRepository;
+    private final ProductRepository productRepository;
 
     public CartItemResponse execute(Long cartId, UpdateCartRequest request) {
         Cart cart = cartRepository.findById(cartId)
@@ -26,6 +29,9 @@ public class UpdateCartUseCase {
 
         ProductOption option = productOptionRepository.findById(cart.getProductOptionId())
                 .orElseThrow(()-> new ProductException(ProductErrorCode.PRODUCT_OPTION_NOT_FOUND));
+
+        Product product = productRepository.findById(option.getProductId())
+                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));
 
         if (!option.hasStock(request.getQuantity())) {
             throw new ProductException(ProductErrorCode.INSUFFICIENT_STOCK);
@@ -38,7 +44,7 @@ public class UpdateCartUseCase {
                 cart.getId(),
                 cart.getUserId(),
                 cart.getProductOptionId(),
-                option.getProduct().getName(),
+                product.getName(),
                 option.getOptionName() + ": " + option.getOptionValue(),
                 option.getPrice(),
                 cart.getQuantity(),

@@ -38,9 +38,9 @@ class GetProductDetailUseCaseTest {
         Product product = new Product("테스트 상품", "테스트 설명", "전자제품");
         product.setId(1L);
 
-        ProductOption option1 = new ProductOption(product, "색상", "블랙", 100000, 10);
+        ProductOption option1 = new ProductOption(product.getId(), "색상", "블랙", 100000, 10);
         option1.setId(1L);
-        ProductOption option2 = new ProductOption(product, "색상", "화이트", 100000, 5);
+        ProductOption option2 = new ProductOption(product.getId(), "색상", "화이트", 100000, 5);
         option2.setId(2L);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));

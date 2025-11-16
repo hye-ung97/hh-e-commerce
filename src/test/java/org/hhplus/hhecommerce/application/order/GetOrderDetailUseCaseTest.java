@@ -7,6 +7,8 @@ import org.hhplus.hhecommerce.domain.order.exception.OrderException;
 import org.hhplus.hhecommerce.domain.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
+import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
+import org.hhplus.hhecommerce.domain.product.ProductRepository;
 import org.hhplus.hhecommerce.domain.product.ProductStatus;
 import org.hhplus.hhecommerce.domain.user.User;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +30,12 @@ class GetOrderDetailUseCaseTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private ProductOptionRepository productOptionRepository;
+
+    @Mock
+    private ProductRepository productRepository;
+
     @InjectMocks
     private GetOrderDetailUseCase getOrderDetailUseCase;
 
@@ -38,13 +46,15 @@ class GetOrderDetailUseCaseTest {
         User user = new User(1L, "테스트유저", "test@test.com");
 
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 50000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 50000, 10);
 
-        OrderItem item = new OrderItem(option, 2, 50000);
-        Order order = Order.create(user, List.of(item), 0);
+        OrderItem item = new OrderItem(option.getId(), 2, 50000);
+        Order order = Order.create(user.getId(), List.of(item), 0);
         order.setId(1L);
 
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(productOptionRepository.findById(option.getId())).thenReturn(Optional.of(option));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
 
         // When
         OrderDetailResponse response = getOrderDetailUseCase.execute(order.getId());

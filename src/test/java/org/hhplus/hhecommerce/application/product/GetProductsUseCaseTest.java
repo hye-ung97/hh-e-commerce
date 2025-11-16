@@ -40,7 +40,7 @@ class GetProductsUseCaseTest {
         Product product = new Product("테스트 상품", "테스트 설명", "전자제품");
         product.setId(1L);
 
-        ProductOption option = new ProductOption(product, "색상", "블랙", 100000, 10);
+        ProductOption option = new ProductOption(product.getId(), "색상", "블랙", 100000, 10);
         option.setId(1L);
 
         Page<Product> page = new PageImpl<>(List.of(product));
@@ -64,10 +64,10 @@ class GetProductsUseCaseTest {
         Product product = new Product("노트북", "고성능 노트북", "전자제품");
         product.setId(1L);
 
-        ProductOption option1 = new ProductOption(product, "RAM", "8GB", 1000000, 5);
+        ProductOption option1 = new ProductOption(product.getId(), "RAM", "8GB", 1000000, 5);
         option1.setId(1L);
 
-        ProductOption option2 = new ProductOption(product, "RAM", "16GB", 1200000, 3);
+        ProductOption option2 = new ProductOption(product.getId(), "RAM", "16GB", 1200000, 3);
         option2.setId(2L);
 
         Page<Product> page = new PageImpl<>(List.of(product));

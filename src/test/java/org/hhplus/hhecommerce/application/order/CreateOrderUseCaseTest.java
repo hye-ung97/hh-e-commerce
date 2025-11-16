@@ -20,6 +20,7 @@ import org.hhplus.hhecommerce.domain.point.exception.PointException;
 import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
 import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
+import org.hhplus.hhecommerce.domain.product.ProductRepository;
 import org.hhplus.hhecommerce.domain.product.ProductStatus;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.hhplus.hhecommerce.domain.user.User;
@@ -67,6 +68,9 @@ class CreateOrderUseCaseTest {
     private CouponRepository couponRepository;
 
     @Mock
+    private ProductRepository productRepository;
+
+    @Mock
     private TransactionTemplate transactionTemplate;
 
     @InjectMocks
@@ -86,18 +90,19 @@ class CreateOrderUseCaseTest {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
 
-        Point point = new Point(user);
+        Point point = new Point(user.getId());
         point.charge(100000);
 
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 50000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 50000, 10);
 
         Cart cart = new Cart(user.getId(), option.getId(), 2);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(pointRepository.findByUserId(1L)).thenReturn(Optional.of(point));
         when(cartRepository.findByUserId(1L)).thenReturn(List.of(cart));
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
             order.setId(1L);
@@ -126,7 +131,7 @@ class CreateOrderUseCaseTest {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(cartRepository.findByUserId(1L)).thenReturn(List.of());
 
         CreateOrderRequest request = new CreateOrderRequest(null);
@@ -142,15 +147,15 @@ class CreateOrderUseCaseTest {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
 
-        Point point = new Point(user);
+        Point point = new Point(user.getId());
         point.charge(100000);
 
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 50000, 1);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 50000, 1);
 
         Cart cart = new Cart(user.getId(), option.getId(), 5); // 재고보다 많은 수량
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(cartRepository.findByUserId(1L)).thenReturn(List.of(cart));
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
 
@@ -167,15 +172,15 @@ class CreateOrderUseCaseTest {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
 
-        Point point = new Point(user);
+        Point point = new Point(user.getId());
         point.charge(10000); // 부족한 포인트
 
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 50000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 50000, 10);
 
         Cart cart = new Cart(user.getId(), option.getId(), 2);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(pointRepository.findByUserId(1L)).thenReturn(Optional.of(point));
         when(cartRepository.findByUserId(1L)).thenReturn(List.of(cart));
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
@@ -194,18 +199,19 @@ class CreateOrderUseCaseTest {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
 
-        Point point = new Point(user);
+        Point point = new Point(user.getId());
         point.charge(100000); // 충분한 포인트 충전
 
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 20000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 20000, 10);
 
         Cart cart = new Cart(user.getId(), option.getId(), 3);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(pointRepository.findByUserId(1L)).thenReturn(Optional.of(point));
         when(cartRepository.findByUserId(1L)).thenReturn(List.of(cart));
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
             order.setId(1L);
@@ -228,18 +234,19 @@ class CreateOrderUseCaseTest {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
 
-        Point point = new Point(user);
+        Point point = new Point(user.getId());
         point.charge(100000);
 
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 50000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 50000, 10);
 
         Cart cart = new Cart(user.getId(), option.getId(), 2);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(pointRepository.findByUserId(1L)).thenReturn(Optional.of(point));
         when(cartRepository.findByUserId(1L)).thenReturn(List.of(cart));
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
             order.setId(1L);
@@ -262,11 +269,11 @@ class CreateOrderUseCaseTest {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
 
-        Point point = new Point(user);
+        Point point = new Point(user.getId());
         point.charge(100000);
 
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 50000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 50000, 10);
 
         Cart cart = new Cart(user.getId(), option.getId(), 2);
 
@@ -278,10 +285,11 @@ class CreateOrderUseCaseTest {
         UserCoupon userCoupon = new UserCoupon(user.getId(), coupon.getId(), now.plusDays(30));
         userCoupon.setId(1L);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(pointRepository.findByUserId(1L)).thenReturn(Optional.of(point));
         when(cartRepository.findByUserId(1L)).thenReturn(List.of(cart));
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
         when(userCouponRepository.findById(1L)).thenReturn(Optional.of(userCoupon));
         when(couponRepository.findById(1L)).thenReturn(Optional.of(coupon));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
@@ -308,11 +316,11 @@ class CreateOrderUseCaseTest {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
 
-        Point point = new Point(user);
+        Point point = new Point(user.getId());
         point.charge(100000);
 
         Product product = new Product(1L, "키보드", "무선 키보드", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "색상", "블랙", 5000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "색상", "블랙", 5000, 10);
 
         Cart cart = new Cart(user.getId(), option.getId(), 1); // 5000원
 
@@ -324,7 +332,7 @@ class CreateOrderUseCaseTest {
         UserCoupon userCoupon = new UserCoupon(user.getId(), coupon.getId(), now.plusDays(30));
         userCoupon.setId(1L);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(cartRepository.findByUserId(1L)).thenReturn(List.of(cart));
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
         when(userCouponRepository.findById(1L)).thenReturn(Optional.of(userCoupon));
@@ -343,11 +351,11 @@ class CreateOrderUseCaseTest {
         // Given
         User user = new User(1L, "테스트유저", "test@test.com");
 
-        Point point = new Point(user);
+        Point point = new Point(user.getId());
         point.charge(100000);
 
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 50000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 50000, 10);
 
         Cart cart = new Cart(user.getId(), option.getId(), 2);
 
@@ -360,7 +368,7 @@ class CreateOrderUseCaseTest {
         userCoupon.use(); // 쿠폰 사용 처리
         userCoupon.setId(1L);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(cartRepository.findByUserId(1L)).thenReturn(List.of(cart));
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
         when(userCouponRepository.findById(1L)).thenReturn(Optional.of(userCoupon));

@@ -5,7 +5,6 @@ import lombok.Getter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
 import org.hhplus.hhecommerce.domain.point.exception.PointErrorCode;
 import org.hhplus.hhecommerce.domain.point.exception.PointException;
-import org.hhplus.hhecommerce.domain.user.User;
 
 @Getter
 @Entity
@@ -23,9 +22,8 @@ public class Point extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private User user;
+    @Column(name = "user_id", nullable = false, unique = true)
+    private Long userId;
 
     @Column(nullable = false)
     private int amount;
@@ -37,16 +35,16 @@ public class Point extends BaseTimeEntity {
         super();
     }
 
-    public Point(User user) {
+    public Point(Long userId) {
         super();
-        this.user = user;
+        this.userId = userId;
         this.amount = 0;
     }
 
-    public Point(Long id, User user, int amount) {
+    public Point(Long id, Long userId, int amount) {
         super();
         this.id = id;
-        this.user = user;
+        this.userId = userId;
         this.amount = amount;
     }
 

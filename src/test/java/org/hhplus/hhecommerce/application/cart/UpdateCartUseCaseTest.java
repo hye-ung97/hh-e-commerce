@@ -8,6 +8,7 @@ import org.hhplus.hhecommerce.domain.cart.CartRepository;
 import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
 import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
+import org.hhplus.hhecommerce.domain.product.ProductRepository;
 import org.hhplus.hhecommerce.domain.product.ProductStatus;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +33,9 @@ class UpdateCartUseCaseTest {
     @Mock
     private ProductOptionRepository productOptionRepository;
 
+    @Mock
+    private ProductRepository productRepository;
+
     @InjectMocks
     private UpdateCartUseCase updateCartUseCase;
 
@@ -42,13 +46,14 @@ class UpdateCartUseCaseTest {
         Long userId = 1L;
         Long cartId = 1L;
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 1500000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 1500000, 10);
 
         Cart cart = new Cart(userId, option.getId(), 2);
         cart.setId(cartId);
 
         when(cartRepository.findById(cartId)).thenReturn(Optional.of(cart));
         when(productOptionRepository.findById(option.getId())).thenReturn(Optional.of(option));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
         when(cartRepository.save(any(Cart.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UpdateCartRequest request = new UpdateCartRequest(5);
@@ -68,7 +73,7 @@ class UpdateCartUseCaseTest {
         Long userId = 1L;
         Long cartId = 1L;
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 1500000, 5);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 1500000, 5);
 
         Cart cart = new Cart(userId, option.getId(), 2);
         cart.setId(cartId);

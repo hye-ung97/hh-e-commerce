@@ -46,17 +46,17 @@ public class DataInitializer implements CommandLineRunner {
         log.info("사용자 생성: 3명");
 
         // 포인트 생성
-        Point point1 = new Point(user1);
+        Point point1 = new Point(user1.getId());
         point1.charge(100000);
         pointRepository.save(point1);
         log.info("User1 포인트 생성: {}P", point1.getAmount());
 
-        Point point2 = new Point(user2);
+        Point point2 = new Point(user2.getId());
         point2.charge(50000);
         pointRepository.save(point2);
         log.info("User2 포인트 생성: {}P", point2.getAmount());
 
-        Point point3 = new Point(user3);
+        Point point3 = new Point(user3.getId());
         point3.charge(80000);
         pointRepository.save(point3);
         log.info("User3 포인트 생성: {}P", point3.getAmount());
@@ -67,14 +67,14 @@ public class DataInitializer implements CommandLineRunner {
         log.info("상품 생성: 2개");
 
         // 상품 옵션 생성
-        ProductOption option1_1 = new ProductOption(product1, "색상", "실버", 0, 5);
-        ProductOption option1_2 = new ProductOption(product1, "용량", "512GB", 200000, 5);
+        ProductOption option1_1 = new ProductOption(product1.getId(), "색상", "실버", 0, 5);
+        ProductOption option1_2 = new ProductOption(product1.getId(), "용량", "512GB", 200000, 5);
         productOptionRepository.save(option1_1);
         productOptionRepository.save(option1_2);
         log.info("노트북 옵션 생성: 2개");
 
-        ProductOption option2_1 = new ProductOption(product2, "색상", "블랙", 0, 10);
-        ProductOption option2_2 = new ProductOption(product2, "색상", "화이트", 5000, 10);
+        ProductOption option2_1 = new ProductOption(product2.getId(), "색상", "블랙", 0, 10);
+        ProductOption option2_2 = new ProductOption(product2.getId(), "색상", "화이트", 5000, 10);
         productOptionRepository.save(option2_1);
         productOptionRepository.save(option2_2);
         log.info("무선 키보드 옵션 생성: 2개");

@@ -60,7 +60,7 @@ class CartControllerIntegrationTest extends TestContainersConfig {
         product = productRepository.save(product);
 
         // 테스트 상품 옵션 생성
-        productOption = new ProductOption(product, "색상", "실버", 1500000, 100);
+        productOption = new ProductOption(product.getId(), "색상", "실버", 1500000, 100);
         productOption = productOptionRepository.save(productOption);
     }
 
@@ -213,8 +213,8 @@ class CartControllerIntegrationTest extends TestContainersConfig {
     @DisplayName("장바구니 페이징 조회 - 여러 항목")
     void getCart_withPagination() throws Exception {
         // given - 3개의 상품 옵션과 장바구니 항목 생성
-        ProductOption option1 = new ProductOption(product, "색상", "블랙", 1600000, 50);
-        ProductOption option2 = new ProductOption(product, "색상", "화이트", 1700000, 30);
+        ProductOption option1 = new ProductOption(product.getId(), "색상", "블랙", 1600000, 50);
+        ProductOption option2 = new ProductOption(product.getId(), "색상", "화이트", 1700000, 30);
         productOptionRepository.save(option1);
         productOptionRepository.save(option2);
 
