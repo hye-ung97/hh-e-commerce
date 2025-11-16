@@ -2,7 +2,7 @@ package org.hhplus.hhecommerce.application.coupon;
 
 import org.hhplus.hhecommerce.api.dto.coupon.CouponListResponse;
 import org.hhplus.hhecommerce.domain.coupon.Coupon;
-import org.hhplus.hhecommerce.infrastructure.repository.coupon.CouponRepository;
+import org.hhplus.hhecommerce.domain.coupon.CouponRepository;
 import org.hhplus.hhecommerce.domain.coupon.CouponType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

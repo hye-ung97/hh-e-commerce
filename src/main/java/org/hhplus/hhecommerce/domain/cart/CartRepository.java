@@ -1,6 +1,5 @@
-package org.hhplus.hhecommerce.infrastructure.repository.cart;
+package org.hhplus.hhecommerce.domain.cart;
 
-import org.hhplus.hhecommerce.domain.cart.Cart;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

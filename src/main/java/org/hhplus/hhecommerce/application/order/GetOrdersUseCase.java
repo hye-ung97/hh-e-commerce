@@ -3,7 +3,7 @@ package org.hhplus.hhecommerce.application.order;
 import lombok.RequiredArgsConstructor;
 import org.hhplus.hhecommerce.api.dto.order.OrderListResponse;
 import org.hhplus.hhecommerce.domain.order.Order;
-import org.hhplus.hhecommerce.infrastructure.repository.order.OrderRepository;
+import org.hhplus.hhecommerce.domain.order.OrderRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

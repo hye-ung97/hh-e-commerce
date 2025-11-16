@@ -4,11 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.hhplus.hhecommerce.api.dto.cart.AddCartRequest;
 import org.hhplus.hhecommerce.api.dto.cart.CartItemResponse;
 import org.hhplus.hhecommerce.domain.cart.Cart;
+import org.hhplus.hhecommerce.domain.cart.CartRepository;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
-import org.hhplus.hhecommerce.infrastructure.repository.cart.CartRepository;
+import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
 import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
-import org.hhplus.hhecommerce.infrastructure.repository.product.ProductOptionRepository;
 import org.springframework.stereotype.Service;
 
 @Service

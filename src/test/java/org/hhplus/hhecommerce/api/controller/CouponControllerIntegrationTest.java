@@ -2,12 +2,12 @@ package org.hhplus.hhecommerce.api.controller;
 
 import org.hhplus.hhecommerce.config.TestContainersConfig;
 import org.hhplus.hhecommerce.domain.coupon.Coupon;
-import org.hhplus.hhecommerce.infrastructure.repository.coupon.CouponRepository;
+import org.hhplus.hhecommerce.domain.coupon.CouponRepository;
 import org.hhplus.hhecommerce.domain.coupon.CouponType;
 import org.hhplus.hhecommerce.domain.coupon.UserCoupon;
-import org.hhplus.hhecommerce.infrastructure.repository.coupon.UserCouponRepository;
+import org.hhplus.hhecommerce.domain.coupon.UserCouponRepository;
 import org.hhplus.hhecommerce.domain.user.User;
-import org.hhplus.hhecommerce.infrastructure.repository.user.UserRepository;
+import org.hhplus.hhecommerce.domain.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
