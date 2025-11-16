@@ -1,6 +1,5 @@
-package org.hhplus.hhecommerce.infrastructure.repository.order;
+package org.hhplus.hhecommerce.domain.order;
 
-import org.hhplus.hhecommerce.domain.order.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

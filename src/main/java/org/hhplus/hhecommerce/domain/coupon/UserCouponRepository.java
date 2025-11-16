@@ -1,6 +1,5 @@
-package org.hhplus.hhecommerce.infrastructure.repository.coupon;
+package org.hhplus.hhecommerce.domain.coupon;
 
-import org.hhplus.hhecommerce.domain.coupon.UserCoupon;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

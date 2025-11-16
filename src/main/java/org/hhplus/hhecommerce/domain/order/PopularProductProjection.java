@@ -1,4 +1,4 @@
-package org.hhplus.hhecommerce.infrastructure.repository.order;
+package org.hhplus.hhecommerce.domain.order;
 
 public interface PopularProductProjection {
     Long getProductId();

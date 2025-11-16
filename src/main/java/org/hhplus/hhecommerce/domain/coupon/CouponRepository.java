@@ -1,7 +1,6 @@
-package org.hhplus.hhecommerce.infrastructure.repository.coupon;
+package org.hhplus.hhecommerce.domain.coupon;
 
 import jakarta.persistence.LockModeType;
-import org.hhplus.hhecommerce.domain.coupon.Coupon;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;

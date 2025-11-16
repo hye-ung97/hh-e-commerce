@@ -1,6 +1,5 @@
-package org.hhplus.hhecommerce.infrastructure.repository.point;
+package org.hhplus.hhecommerce.domain.point;
 
-import org.hhplus.hhecommerce.domain.point.Point;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -2,7 +2,7 @@ package org.hhplus.hhecommerce.application.point;
 
 import org.hhplus.hhecommerce.api.dto.point.PointResponse;
 import org.hhplus.hhecommerce.domain.point.Point;
-import org.hhplus.hhecommerce.infrastructure.repository.point.PointRepository;
+import org.hhplus.hhecommerce.domain.point.PointRepository;
 import org.hhplus.hhecommerce.domain.point.exception.PointException;
 import org.hhplus.hhecommerce.domain.user.User;
 import org.junit.jupiter.api.DisplayName;

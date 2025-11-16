@@ -3,7 +3,7 @@ package org.hhplus.hhecommerce.application.cart;
 import org.hhplus.hhecommerce.api.dto.cart.DeleteCartResponse;
 import org.hhplus.hhecommerce.domain.cart.Cart;
 import org.hhplus.hhecommerce.domain.cart.exception.CartException;
-import org.hhplus.hhecommerce.infrastructure.repository.cart.CartRepository;
+import org.hhplus.hhecommerce.domain.cart.CartRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

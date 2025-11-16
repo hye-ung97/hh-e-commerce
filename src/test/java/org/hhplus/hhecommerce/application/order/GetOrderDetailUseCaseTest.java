@@ -4,7 +4,7 @@ import org.hhplus.hhecommerce.api.dto.order.OrderDetailResponse;
 import org.hhplus.hhecommerce.domain.order.Order;
 import org.hhplus.hhecommerce.domain.order.OrderItem;
 import org.hhplus.hhecommerce.domain.order.exception.OrderException;
-import org.hhplus.hhecommerce.infrastructure.repository.order.OrderRepository;
+import org.hhplus.hhecommerce.domain.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
 import org.hhplus.hhecommerce.domain.product.ProductStatus;

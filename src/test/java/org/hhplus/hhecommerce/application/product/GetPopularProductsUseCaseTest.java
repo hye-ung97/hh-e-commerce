@@ -2,9 +2,9 @@ package org.hhplus.hhecommerce.application.product;
 
 import org.hhplus.hhecommerce.api.dto.product.PopularProductsResponse;
 import org.hhplus.hhecommerce.domain.product.Product;
-import org.hhplus.hhecommerce.infrastructure.repository.order.OrderRepository;
-import org.hhplus.hhecommerce.infrastructure.repository.order.PopularProductProjection;
-import org.hhplus.hhecommerce.infrastructure.repository.product.ProductRepository;
+import org.hhplus.hhecommerce.domain.order.OrderRepository;
+import org.hhplus.hhecommerce.domain.order.PopularProductProjection;
+import org.hhplus.hhecommerce.domain.product.ProductRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

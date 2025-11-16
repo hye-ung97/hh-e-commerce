@@ -1,6 +1,5 @@
-package org.hhplus.hhecommerce.infrastructure.repository.user;
+package org.hhplus.hhecommerce.domain.user;
 
-import org.hhplus.hhecommerce.domain.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

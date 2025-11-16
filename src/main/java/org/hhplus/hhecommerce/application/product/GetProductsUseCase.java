@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.hhplus.hhecommerce.api.dto.product.ProductListResponse;
 import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
-import org.hhplus.hhecommerce.infrastructure.repository.product.ProductOptionRepository;
-import org.hhplus.hhecommerce.infrastructure.repository.product.ProductRepository;
+import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
+import org.hhplus.hhecommerce.domain.product.ProductRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
