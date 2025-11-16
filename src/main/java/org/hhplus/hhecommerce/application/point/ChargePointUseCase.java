@@ -5,7 +5,6 @@ import org.hhplus.hhecommerce.api.dto.point.ChargeRequest;
 import org.hhplus.hhecommerce.api.dto.point.ChargeResponse;
 import org.hhplus.hhecommerce.domain.point.Point;
 import org.hhplus.hhecommerce.domain.point.PointRepository;
-import org.hhplus.hhecommerce.domain.user.User;
 import org.hhplus.hhecommerce.domain.user.UserRepository;
 import org.hhplus.hhecommerce.domain.user.exception.UserErrorCode;
 import org.hhplus.hhecommerce.domain.user.exception.UserException;
@@ -19,12 +18,13 @@ public class ChargePointUseCase {
     private final UserRepository userRepository;
 
     public ChargeResponse execute(Long userId, ChargeRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        if (!userRepository.existsById(userId)) {
+            throw new UserException(UserErrorCode.USER_NOT_FOUND);
+        }
 
         Point point = pointRepository.findByUserId(userId)
                 .orElseGet(() -> {
-                    Point newPoint = new Point(user);
+                    Point newPoint = new Point(userId);
                     return pointRepository.save(newPoint);
                 });
 

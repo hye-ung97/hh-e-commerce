@@ -97,14 +97,14 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
         testUser = new User("테스트유저", "order-test@example.com");
         testUser = userRepository.save(testUser);
 
-        testPoint = new Point(testUser);
+        testPoint = new Point(testUser.getId());
         testPoint.charge(100000); // 10만원 충전 (최대 보유 금액)
         testPoint = pointRepository.save(testPoint);
 
         product = new Product("테스트 노트북", "고성능 노트북", "전자제품");
         product = productRepository.save(product);
 
-        productOption = new ProductOption(product, "색상", "실버", 50000, 100);
+        productOption = new ProductOption(product.getId(), "색상", "실버", 50000, 100);
         productOption = productOptionRepository.save(productOption);
 
         coupon = new Coupon(
@@ -246,7 +246,7 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
         Product cheapProduct = new Product("저가 상품", "저렴한 상품", "기타");
         cheapProduct = productRepository.save(cheapProduct);
 
-        ProductOption cheapOption = new ProductOption(cheapProduct, "옵션", "기본", 3000, 100);
+        ProductOption cheapOption = new ProductOption(cheapProduct.getId(), "옵션", "기본", 3000, 100);
         cheapOption = productOptionRepository.save(cheapOption);
 
         // 장바구니에 저가 상품 추가 (총 6000원)
@@ -386,7 +386,7 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
         Product product2 = new Product("마우스", "무선 마우스", "전자제품");
         product2 = productRepository.save(product2);
 
-        ProductOption option2 = new ProductOption(product2, "색상", "블랙", 20000, 50);
+        ProductOption option2 = new ProductOption(product2.getId(), "색상", "블랙", 20000, 50);
         option2 = productOptionRepository.save(option2);
 
         Cart cart1 = new Cart(testUser.getId(), productOption.getId(), 1); // 50000원
@@ -446,7 +446,7 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
         Product product = new Product("인기 상품", "재고 10개", "전자제품");
         product = productRepository.save(product);
 
-        ProductOption limitedOption = new ProductOption(product, "색상", "블랙", 10000, 10);
+        ProductOption limitedOption = new ProductOption(product.getId(), "색상", "블랙", 10000, 10);
         limitedOption = productOptionRepository.save(limitedOption);
 
         int numberOfUsers = 20;
@@ -456,7 +456,7 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
             user = userRepository.save(user);
             users.add(user);
 
-            Point point = new Point(user);
+            Point point = new Point(user.getId());
             point.charge(50000);
             pointRepository.save(point);
 
@@ -523,7 +523,7 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
 
         User testUserForConcurrency = userRepository.save(new User("동시주문유저", "concurrent@example.com"));
 
-        Point point = new Point(testUserForConcurrency);
+        Point point = new Point(testUserForConcurrency.getId());
         point.charge(100000);
         point = pointRepository.save(point);
 
@@ -532,7 +532,7 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
             Product product = new Product("상품" + i, "테스트 상품", "카테고리");
             product = productRepository.save(product);
 
-            ProductOption option = new ProductOption(product, "옵션", "기본", 10000, 100);
+            ProductOption option = new ProductOption(product.getId(), "옵션", "기본", 10000, 100);
             option = productOptionRepository.save(option);
             options.add(option);
         }
@@ -609,7 +609,7 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
         Product product = new Product("초인기 상품", "재고 5개", "한정판");
         product = productRepository.save(product);
 
-        ProductOption hotOption = new ProductOption(product, "색상", "레드", 20000, 5);
+        ProductOption hotOption = new ProductOption(product.getId(), "색상", "레드", 20000, 5);
         hotOption = productOptionRepository.save(hotOption);
 
         int numberOfUsers = 10;
@@ -619,7 +619,7 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
             user = userRepository.save(user);
             users.add(user);
 
-            Point point = new Point(user);
+            Point point = new Point(user.getId());
             point.charge(50000);
             pointRepository.save(point);
 

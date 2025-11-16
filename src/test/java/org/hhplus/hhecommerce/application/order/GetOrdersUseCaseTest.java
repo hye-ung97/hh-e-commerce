@@ -36,10 +36,10 @@ class GetOrdersUseCaseTest {
         User user = new User(1L, "테스트유저", "test@test.com");
 
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 50000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 50000, 10);
 
-        OrderItem item = new OrderItem(option, 2, 50000);
-        Order order = Order.create(user, List.of(item), 0);
+        OrderItem item = new OrderItem(option.getId(), 2, 50000);
+        Order order = Order.create(user.getId(), List.of(item), 0);
         order.setId(1L);
 
         when(orderRepository.findByUserId(1L)).thenReturn(List.of(order));

@@ -3,7 +3,6 @@ package org.hhplus.hhecommerce.domain.order;
 import jakarta.persistence.*;
 import lombok.Getter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
-import org.hhplus.hhecommerce.domain.user.User;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -21,9 +20,8 @@ public class Order extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<OrderItem> orderItems = new ArrayList<>();
@@ -46,9 +44,9 @@ public class Order extends BaseTimeEntity {
 
     protected Order() { super(); }
 
-    public static Order create(User user, List<OrderItem> items, int discountAmount) {
+    public static Order create(Long userId, List<OrderItem> items, int discountAmount) {
         Order order = new Order();
-        order.user = user;
+        order.userId = userId;
         order.status = OrderStatus.PENDING;
         order.orderedAt = LocalDateTime.now();
         order.discountAmount = discountAmount;

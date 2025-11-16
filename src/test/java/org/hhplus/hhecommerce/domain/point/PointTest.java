@@ -2,7 +2,6 @@ package org.hhplus.hhecommerce.domain.point;
 
 import org.hhplus.hhecommerce.domain.point.exception.PointErrorCode;
 import org.hhplus.hhecommerce.domain.point.exception.PointException;
-import org.hhplus.hhecommerce.domain.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,24 +10,24 @@ import static org.assertj.core.api.Assertions.*;
 
 class PointTest {
 
-    private User user;
+    private Long userId;
     private Point point;
 
     @BeforeEach
     void setUp() {
-        user = new User(1L, "테스트유저", "test@test.com");
-        point = new Point(user);
+        userId = 1L;
+        point = new Point(userId);
     }
 
     @Test
     @DisplayName("포인트를 생성하면 초기 잔액은 0이다")
     void 포인트를_생성하면_초기_잔액은_0이다() {
         // When
-        Point newPoint = new Point(user);
+        Point newPoint = new Point(userId);
 
         // Then
         assertThat(newPoint.getAmount()).isEqualTo(0);
-        assertThat(newPoint.getUser()).isEqualTo(user);
+        assertThat(newPoint.getUserId()).isEqualTo(userId);
     }
 
     @Test
@@ -189,11 +188,12 @@ class PointTest {
     @DisplayName("ID를 포함한 생성자로 포인트를 생성할 수 있다")
     void ID를_포함한_생성자로_포인트를_생성할_수_있다() {
         // When
-        Point newPoint = new Point(999L, user, 50000);
+        Point newPoint = new Point(999L, userId, 50000);
 
         // Then
         assertThat(newPoint.getId()).isEqualTo(999L);
-        assertThat(newPoint.getUser()).isEqualTo(user);
+        assertThat(newPoint.getUserId()).isEqualTo(userId);
         assertThat(newPoint.getAmount()).isEqualTo(50000);
     }
 }
+

@@ -20,8 +20,10 @@ import org.hhplus.hhecommerce.domain.order.exception.OrderErrorCode;
 import org.hhplus.hhecommerce.domain.order.exception.OrderException;
 import org.hhplus.hhecommerce.domain.point.Point;
 import org.hhplus.hhecommerce.domain.point.PointRepository;
+import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
 import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
+import org.hhplus.hhecommerce.domain.product.ProductRepository;
 import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.hhplus.hhecommerce.domain.user.User;
@@ -31,6 +33,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -46,6 +49,7 @@ public class CreateOrderUseCase {
     private final UserCouponRepository userCouponRepository;
     private final ProductOptionRepository productOptionRepository;
     private final CouponRepository couponRepository;
+    private final ProductRepository productRepository;
     private final TransactionTemplate transactionTemplate;
 
     public CreateOrderResponse execute(Long userId, CreateOrderRequest request) {
@@ -55,12 +59,11 @@ public class CreateOrderUseCase {
     }
 
     private CreateOrderResponse executeOrderLogic(Long userId, CreateOrderRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseGet(() -> {
-                    User newUser = new User("사용자" + userId, "user" + userId + "@example.com");
-                    newUser.setId(userId);
-                    return userRepository.save(newUser);
-                });
+        if (!userRepository.existsById(userId)) {
+            User newUser = new User("사용자" + userId, "user" + userId + "@example.com");
+            newUser.setId(userId);
+            userRepository.save(newUser);
+        }
 
         List<Cart> carts = cartRepository.findByUserId(userId);
         if (carts.isEmpty()) {
@@ -77,11 +80,11 @@ public class CreateOrderUseCase {
             productOptionRepository.save(option);
 
             int unitPrice = option.getPrice();
-            OrderItem orderItem = new OrderItem(option, cart.getQuantity(), unitPrice);
+            OrderItem orderItem = new OrderItem(option.getId(), cart.getQuantity(), unitPrice);
             orderItems.add(orderItem);
         }
 
-        Order order = Order.create(user, orderItems, 0);
+        Order order = Order.create(userId, orderItems, 0);
 
         int discountAmount = 0;
         if (request.getUserCouponId() != null) {
@@ -105,12 +108,12 @@ public class CreateOrderUseCase {
             userCouponRepository.save(userCoupon);
         }
 
-        order = Order.create(user, orderItems, discountAmount);
+        order = Order.create(userId, orderItems, discountAmount);
         orderRepository.save(order);
 
         Point point = pointRepository.findByUserId(userId)
                 .orElseGet(() -> {
-                    Point newPoint = new Point(user);
+                    Point newPoint = new Point(userId);
                     return pointRepository.save(newPoint);
                 });
 
@@ -119,14 +122,36 @@ public class CreateOrderUseCase {
 
         cartRepository.deleteAllByUserId(userId);
 
+        Map<Long, ProductOption> productOptionMap = orderItems.stream()
+                .map(OrderItem::getProductOptionId)
+                .distinct()
+                .collect(Collectors.toMap(
+                        optionId -> optionId,
+                        optionId -> productOptionRepository.findById(optionId)
+                                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_OPTION_NOT_FOUND))
+                ));
+
+        Map<Long, Product> productMap = productOptionMap.values().stream()
+                .map(ProductOption::getProductId)
+                .distinct()
+                .collect(Collectors.toMap(
+                        productId -> productId,
+                        productId -> productRepository.findById(productId)
+                                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND))
+                ));
+
         List<CreateOrderResponse.OrderItemInfo> itemInfos = orderItems.stream()
-                .map(item -> new CreateOrderResponse.OrderItemInfo(
-                        item.getProductOption().getProduct().getName(),
-                        item.getProductOption().getOptionName(),
-                        item.getUnitPrice(),
-                        item.getQuantity(),
-                        item.getSubTotal()
-                ))
+                .map(item -> {
+                    ProductOption option = productOptionMap.get(item.getProductOptionId());
+                    Product product = productMap.get(option.getProductId());
+                    return new CreateOrderResponse.OrderItemInfo(
+                            product.getName(),
+                            option.getOptionName(),
+                            item.getUnitPrice(),
+                            item.getQuantity(),
+                            item.getSubTotal()
+                    );
+                })
                 .collect(Collectors.toList());
 
         log.info("주문 생성 성공. orderId={}, userId={}, finalAmount={}",
@@ -134,7 +159,7 @@ public class CreateOrderUseCase {
 
         return new CreateOrderResponse(
                 order.getId(),
-                user.getId(),
+                userId,
                 order.getStatus().name(),
                 order.getTotalAmount(),
                 order.getDiscountAmount(),

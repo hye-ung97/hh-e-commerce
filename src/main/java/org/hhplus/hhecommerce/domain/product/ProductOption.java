@@ -18,9 +18,8 @@ public class ProductOption extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private Product product;
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
 
     @Column(name = "option_name", nullable = false, length = 100)
     private String optionName;
@@ -41,19 +40,19 @@ public class ProductOption extends BaseTimeEntity {
         super();
     }
 
-    public ProductOption(Long id, Product product, String optionName, String optionValue, int price, int stock) {
+    public ProductOption(Long id, Long productId, String optionName, String optionValue, int price, int stock) {
         super();
         this.id = id;
-        this.product = product;
+        this.productId = productId;
         this.optionName = optionName;
         this.optionValue = optionValue;
         this.price = price;
         this.stock = stock;
     }
 
-    public ProductOption(Product product, String optionName, String optionValue, int price, int stock) {
+    public ProductOption(Long productId, String optionName, String optionValue, int price, int stock) {
         super();
-        this.product = product;
+        this.productId = productId;
         this.optionName = optionName;
         this.optionValue = optionValue;
         this.price = price;

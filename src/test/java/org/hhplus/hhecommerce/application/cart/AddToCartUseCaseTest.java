@@ -7,6 +7,7 @@ import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.cart.CartRepository;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
 import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
+import org.hhplus.hhecommerce.domain.product.ProductRepository;
 import org.hhplus.hhecommerce.domain.product.ProductStatus;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +32,9 @@ class AddToCartUseCaseTest {
     @Mock
     private ProductOptionRepository productOptionRepository;
 
+    @Mock
+    private ProductRepository productRepository;
+
     @InjectMocks
     private AddToCartUseCase addToCartUseCase;
 
@@ -40,9 +44,10 @@ class AddToCartUseCaseTest {
         // Given
         Long userId = 1L;
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 1500000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 1500000, 10);
 
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
         when(cartRepository.findByUserIdAndProductOptionId(userId, 1L)).thenReturn(Optional.empty());
         when(cartRepository.save(any(Cart.class))).thenAnswer(invocation -> {
             Cart cart = invocation.getArgument(0);
@@ -69,12 +74,13 @@ class AddToCartUseCaseTest {
         // Given
         Long userId = 1L;
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 1500000, 10);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 1500000, 10);
 
         Cart existingCart = new Cart(userId, option.getId(), 2);
         existingCart.setId(1L);
 
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
         when(cartRepository.findByUserIdAndProductOptionId(userId, 1L)).thenReturn(Optional.of(existingCart));
         when(cartRepository.save(any(Cart.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -94,7 +100,7 @@ class AddToCartUseCaseTest {
         // Given
         Long userId = 1L;
         Product product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        ProductOption option = new ProductOption(1L, product, "RAM", "16GB", 1500000, 5);
+        ProductOption option = new ProductOption(1L, product.getId(), "RAM", "16GB", 1500000, 5);
 
         when(productOptionRepository.findById(1L)).thenReturn(Optional.of(option));
 

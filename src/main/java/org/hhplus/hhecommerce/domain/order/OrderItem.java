@@ -3,7 +3,6 @@ package org.hhplus.hhecommerce.domain.order;
 import jakarta.persistence.*;
 import lombok.Getter;
 import org.hhplus.hhecommerce.domain.common.BaseTimeEntity;
-import org.hhplus.hhecommerce.domain.product.ProductOption;
 
 @Getter
 @Entity
@@ -24,9 +23,8 @@ public class OrderItem extends BaseTimeEntity {
     @JoinColumn(name = "order_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Order order;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_option_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private ProductOption productOption;
+    @Column(name = "product_option_id", nullable = false)
+    private Long productOptionId;
 
     @Column(nullable = false)
     private int quantity;
@@ -43,9 +41,9 @@ public class OrderItem extends BaseTimeEntity {
 
     protected OrderItem() { super(); }
 
-    public OrderItem(ProductOption productOption, int quantity, int unitPrice) {
+    public OrderItem(Long productOptionId, int quantity, int unitPrice) {
         super();
-        this.productOption = productOption;
+        this.productOptionId = productOptionId;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.subTotal = unitPrice * quantity;

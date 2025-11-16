@@ -45,13 +45,13 @@ class ProductControllerIntegrationTest extends TestContainersConfig {
         product2 = new Product("마우스", "무선 마우스", "전자제품");
         product2 = productRepository.save(product2);
 
-        option1 = new ProductOption(product1, "색상", "실버", 1500000, 100);
+        option1 = new ProductOption(product1.getId(), "색상", "실버", 1500000, 100);
         option1 = productOptionRepository.save(option1);
 
-        option2 = new ProductOption(product1, "색상", "블랙", 1600000, 50);
+        option2 = new ProductOption(product1.getId(), "색상", "블랙", 1600000, 50);
         option2 = productOptionRepository.save(option2);
 
-        ProductOption mouseOption = new ProductOption(product2, "색상", "화이트", 50000, 200);
+        ProductOption mouseOption = new ProductOption(product2.getId(), "색상", "화이트", 50000, 200);
         productOptionRepository.save(mouseOption);
     }
 
@@ -79,7 +79,7 @@ class ProductControllerIntegrationTest extends TestContainersConfig {
         for (int i = 3; i <= 10; i++) {
             Product product = new Product("상품" + i, "설명" + i, "카테고리" + i);
             product = productRepository.save(product);
-            ProductOption option = new ProductOption(product, "옵션", "값", 10000 * i, 100);
+            ProductOption option = new ProductOption(product.getId(), "옵션", "값", 10000 * i, 100);
             productOptionRepository.save(option);
         }
 
@@ -227,9 +227,9 @@ class ProductControllerIntegrationTest extends TestContainersConfig {
         Product multiOptionProduct = new Product("셔츠", "면 셔츠", "의류");
         multiOptionProduct = productRepository.save(multiOptionProduct);
 
-        ProductOption sizeS = new ProductOption(multiOptionProduct, "사이즈", "S", 30000, 10);
-        ProductOption sizeM = new ProductOption(multiOptionProduct, "사이즈", "M", 30000, 20);
-        ProductOption sizeL = new ProductOption(multiOptionProduct, "사이즈", "L", 30000, 15);
+        ProductOption sizeS = new ProductOption(multiOptionProduct.getId(), "사이즈", "S", 30000, 10);
+        ProductOption sizeM = new ProductOption(multiOptionProduct.getId(), "사이즈", "M", 30000, 20);
+        ProductOption sizeL = new ProductOption(multiOptionProduct.getId(), "사이즈", "L", 30000, 15);
         productOptionRepository.save(sizeS);
         productOptionRepository.save(sizeM);
         productOptionRepository.save(sizeL);

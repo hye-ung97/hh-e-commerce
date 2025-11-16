@@ -15,7 +15,7 @@ class ProductOptionTest {
     @BeforeEach
     void setUp() {
         product = new Product(1L, "노트북", "고성능 노트북", "전자제품", ProductStatus.ACTIVE);
-        productOption = new ProductOption(1L, product, "RAM", "16GB", 1500000, 10);
+        productOption = new ProductOption(1L, product.getId(), "RAM", "16GB", 1500000, 10);
     }
 
     @Test
