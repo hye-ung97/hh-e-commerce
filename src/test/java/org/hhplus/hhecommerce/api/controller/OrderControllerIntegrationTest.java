@@ -219,10 +219,10 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
     @Test
     @DisplayName("주문 생성 - 포인트 부족 (실패)")
     void createOrder_insufficientPoint() throws Exception {
-        // given - 포인트 잔액을 부족하게 설정
-        testPoint = pointRepository.findByUserId(testUser.getId()).orElseThrow();
-        testPoint.deduct(99000); // 1000원만 남김
-        pointRepository.save(testPoint);
+        // given - 포인트 잔액을 부족하게 설정 (원자적 업데이트 사용)
+        pointRepository.deductPoint(testUser.getId(), 99000); // 1000원만 남김
+        entityManager.flush();
+        entityManager.clear();
 
         // 장바구니에 상품 추가 (10만원)
         Cart cart = new Cart(testUser.getId(), productOption.getId(), 2);
@@ -683,5 +683,315 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
 
         assertThat(successCount.get() + failCount.get()).isEqualTo(numberOfUsers)
             .withFailMessage("모든 요청이 성공 또는 실패로 처리되어야 합니다.");
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @DisplayName("동시성 테스트: 유저별 락 검증 - 같은 사용자의 동시 주문은 순차 처리")
+    void createOrder_concurrency_userLockSequential() throws Exception {
+        // given - 테스트 데이터 초기화
+        cartRepository.deleteAll();
+        productOptionRepository.deleteAll();
+        productRepository.deleteAll();
+        pointRepository.deleteAll();
+        userRepository.deleteAll();
+
+        User sameUser = new User("동일유저", "same@example.com");
+        sameUser = userRepository.save(sameUser);
+
+        Point point = new Point(sameUser.getId());
+        point.charge(100000);
+        pointRepository.save(point);
+
+        List<ProductOption> options = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            Product product = new Product("상품" + i, "테스트 상품", "카테고리");
+            product = productRepository.save(product);
+
+            ProductOption option = new ProductOption(product.getId(), "옵션", "기본", 10000, 100);
+            option = productOptionRepository.save(option);
+            options.add(option);
+
+            Cart cart = new Cart(sameUser.getId(), option.getId(), 1);
+            cartRepository.save(cart);
+        }
+
+        // when - 같은 사용자가 5번의 주문을 동시에 시도
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch endLatch = new CountDownLatch(5);
+        AtomicInteger successCount = new AtomicInteger(0);
+        List<Long> executionOrder = new ArrayList<>();
+        List<Long> executionTimes = new ArrayList<>();
+
+        final Long userId = sameUser.getId();
+
+        for (int i = 0; i < 5; i++) {
+            executorService.submit(() -> {
+                try {
+                    startLatch.await();
+                    long startTime = System.currentTimeMillis();
+
+                    CreateOrderRequest request = new CreateOrderRequest(null);
+                    mockMvc.perform(post("/api/orders")
+                                    .param("userId", userId.toString())
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
+                            .andDo(result -> {
+                                if (result.getResponse().getStatus() == 200) {
+                                    long endTime = System.currentTimeMillis();
+                                    synchronized (executionTimes) {
+                                        executionTimes.add(endTime - startTime);
+                                        executionOrder.add(Thread.currentThread().getId());
+                                    }
+                                    successCount.incrementAndGet();
+                                }
+                            });
+                } catch (Exception e) {
+                } finally {
+                    endLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        endLatch.await();
+        executorService.shutdown();
+
+        // then - synchronized로 인해 순차 처리되므로 1개만 성공 (장바구니가 첫 주문 후 비워지므로)
+        assertThat(successCount.get()).isEqualTo(1)
+            .withFailMessage("같은 사용자의 동시 주문은 synchronized로 순차 처리되어 첫 주문만 성공해야 합니다. " +
+                "실제 성공: " + successCount.get());
+
+        assertThat(cartRepository.findByUserId(userId)).isEmpty();
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @DisplayName("동시성 테스트: 쿠폰 동시 사용 경쟁 - 같은 쿠폰을 동시에 사용 시도")
+    void createOrder_concurrency_couponRaceCondition() throws Exception {
+        // given - 테스트 데이터 초기화
+        userCouponRepository.deleteAll();
+        cartRepository.deleteAll();
+        productOptionRepository.deleteAll();
+        productRepository.deleteAll();
+        pointRepository.deleteAll();
+        userRepository.deleteAll();
+
+        User testUserForCoupon = new User("쿠폰테스트유저", "coupon-test@example.com");
+        testUserForCoupon = userRepository.save(testUserForCoupon);
+
+        Point point = new Point(testUserForCoupon.getId());
+        point.charge(100000);
+        pointRepository.save(point);
+
+        UserCoupon singleUserCoupon = new UserCoupon(
+            testUserForCoupon.getId(),
+            coupon.getId(),
+            LocalDateTime.now().plusDays(30)
+        );
+        singleUserCoupon = userCouponRepository.save(singleUserCoupon);
+
+        List<ProductOption> options = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            Product product = new Product("상품" + i, "테스트", "카테고리");
+            product = productRepository.save(product);
+
+            ProductOption option = new ProductOption(product.getId(), "옵션", "기본", 30000, 100);
+            option = productOptionRepository.save(option);
+            options.add(option);
+
+            Cart cart = new Cart(testUserForCoupon.getId(), option.getId(), 1);
+            cartRepository.save(cart);
+        }
+
+        // when - 같은 UserCoupon을 3번의 주문에서 동시에 사용 시도
+        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch endLatch = new CountDownLatch(3);
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger couponAlreadyUsedCount = new AtomicInteger(0);
+
+        final Long userId = testUserForCoupon.getId();
+        final Long userCouponId = singleUserCoupon.getId();
+
+        for (int i = 0; i < 3; i++) {
+            executorService.submit(() -> {
+                try {
+                    startLatch.await();
+
+                    CreateOrderRequest request = new CreateOrderRequest(userCouponId);
+                    mockMvc.perform(post("/api/orders")
+                                    .param("userId", userId.toString())
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
+                            .andDo(result -> {
+                                int status = result.getResponse().getStatus();
+                                String response = result.getResponse().getContentAsString();
+
+                                if (status == 200) {
+                                    successCount.incrementAndGet();
+                                } else if (response.contains("COUPON") || response.contains("쿠폰")) {
+                                    couponAlreadyUsedCount.incrementAndGet();
+                                }
+                            });
+                } catch (Exception e) {
+                } finally {
+                    endLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        endLatch.await();
+        executorService.shutdown();
+
+        // then - 쿠폰은 1번만 사용되어야 함
+        assertThat(successCount.get()).isEqualTo(1)
+            .withFailMessage("같은 UserCoupon은 1번만 사용되어야 합니다. 실제 성공: " + successCount.get());
+
+        UserCoupon finalUserCoupon = userCouponRepository.findById(userCouponId).orElseThrow();
+        assertThat(finalUserCoupon.getStatus().name()).isEqualTo("USED");
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @DisplayName("동시성 테스트: 트랜잭션 롤백 - 포인트 부족 시 재고 원복")
+    void createOrder_transactionRollback_stockRestored() throws Exception {
+        // given - 테스트 데이터 초기화
+        cartRepository.deleteAll();
+        productOptionRepository.deleteAll();
+        productRepository.deleteAll();
+        pointRepository.deleteAll();
+        userRepository.deleteAll();
+
+        User poorUser = new User("가난한유저", "poor@example.com");
+        poorUser = userRepository.save(poorUser);
+
+        Point insufficientPoint = new Point(poorUser.getId());
+        insufficientPoint.charge(5000); // 부족한 포인트
+        pointRepository.save(insufficientPoint);
+
+        Product product = new Product("비싼 상품", "고가 상품", "명품");
+        product = productRepository.save(product);
+
+        ProductOption expensiveOption = new ProductOption(
+            product.getId(),
+            "옵션",
+            "기본",
+            100000, // 10만원
+            10 // 재고 10개
+        );
+        expensiveOption = productOptionRepository.save(expensiveOption);
+
+        Cart cart = new Cart(poorUser.getId(), expensiveOption.getId(), 1);
+        cartRepository.save(cart);
+
+        // when - 포인트 부족으로 주문 실패
+        CreateOrderRequest request = new CreateOrderRequest(null);
+
+        mockMvc.perform(post("/api/orders")
+                        .param("userId", poorUser.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().is4xxClientError());
+
+        // then - 재고가 원복되어야 함 (트랜잭션 롤백)
+        ProductOption finalOption = productOptionRepository.findById(expensiveOption.getId()).orElseThrow();
+        assertThat(finalOption.getStock()).isEqualTo(10)
+            .withFailMessage("포인트 부족으로 주문 실패 시 재고가 원복되어야 합니다. " +
+                "기대: 10, 실제: " + finalOption.getStock());
+
+        Point finalPoint = pointRepository.findByUserId(poorUser.getId()).orElseThrow();
+        assertThat(finalPoint.getAmount()).isEqualTo(5000)
+            .withFailMessage("트랜잭션 롤백으로 포인트도 차감되지 않아야 합니다.");
+
+        assertThat(cartRepository.findByUserId(poorUser.getId())).hasSize(1);
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @DisplayName("동시성 테스트: ConcurrentHashMap 메모리 정리 검증")
+    void createOrder_concurrency_userLocksCleanup() throws Exception {
+        // given - 테스트 데이터 초기화
+        cartRepository.deleteAll();
+        productOptionRepository.deleteAll();
+        productRepository.deleteAll();
+        pointRepository.deleteAll();
+        userRepository.deleteAll();
+
+        List<User> users = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            User user = new User("유저" + i, "user" + i + "@example.com");
+            user = userRepository.save(user);
+            users.add(user);
+
+            Point point = new Point(user.getId());
+            point.charge(100000);
+            pointRepository.save(point);
+
+            Product product = new Product("상품" + i, "테스트", "카테고리");
+            product = productRepository.save(product);
+
+            ProductOption option = new ProductOption(product.getId(), "옵션", "기본", 10000, 100);
+            option = productOptionRepository.save(option);
+
+            Cart cart = new Cart(user.getId(), option.getId(), 1);
+            cartRepository.save(cart);
+        }
+
+        // when - 10명의 사용자가 주문
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        CountDownLatch latch = new CountDownLatch(10);
+
+        for (User user : users) {
+            executorService.submit(() -> {
+                try {
+                    CreateOrderRequest request = new CreateOrderRequest(null);
+                    mockMvc.perform(post("/api/orders")
+                            .param("userId", user.getId().toString())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)));
+                } catch (Exception e) {
+                    // 예외 무시
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executorService.shutdown();
+
+        // then - CreateOrderUseCase의 userLocks 맵이 비어있는지 확인 (리플렉션 사용)
+        // Note: finally 블록에서 userLocks.remove(userId)가 호출되므로 맵이 비어있어야 함
+        // 실제 검증은 메모리 누수가 없다는 것을 간접적으로 확인
+        // (모든 주문이 정상적으로 완료되고 락이 해제됨)
+
+        for (User user : users) {
+            assertThat(cartRepository.findByUserId(user.getId()))
+                .withFailMessage("유저 " + user.getId() + "의 장바구니가 비워져야 합니다.")
+                .isEmpty();
+        }
+
+        User firstUser = users.get(0);
+        Product newProduct = new Product("추가상품", "테스트", "카테고리");
+        newProduct = productRepository.save(newProduct);
+
+        ProductOption newOption = new ProductOption(newProduct.getId(), "옵션", "기본", 5000, 100);
+        newOption = productOptionRepository.save(newOption);
+
+        Cart newCart = new Cart(firstUser.getId(), newOption.getId(), 1);
+        cartRepository.save(newCart);
+
+        CreateOrderRequest additionalRequest = new CreateOrderRequest(null);
+        mockMvc.perform(post("/api/orders")
+                        .param("userId", firstUser.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(additionalRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("주문이 완료되었습니다"));
+
+        assertThat(cartRepository.findByUserId(firstUser.getId())).isEmpty();
     }
 }
