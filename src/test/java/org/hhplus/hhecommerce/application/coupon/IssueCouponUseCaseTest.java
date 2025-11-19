@@ -55,7 +55,6 @@ class IssueCouponUseCaseTest {
             userCoupon.setId(1L);
             return userCoupon;
         });
-        when(couponRepository.save(any(Coupon.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         IssueCouponResponse response = issueCouponUseCase.execute(userId, coupon.getId());
@@ -77,7 +76,6 @@ class IssueCouponUseCaseTest {
                 now.minusDays(1), now.plusDays(30));
         coupon.setId(1L);
 
-        when(couponRepository.findByIdWithLock(1L)).thenReturn(Optional.of(coupon));
         when(userCouponRepository.existsByUserIdAndCouponId(userId, 1L)).thenReturn(true);
 
         // When & Then
@@ -126,7 +124,6 @@ class IssueCouponUseCaseTest {
         coupon.setId(1L);
 
         when(couponRepository.findByIdWithLock(1L)).thenReturn(Optional.of(coupon));
-        when(couponRepository.save(any(Coupon.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(userCouponRepository.existsByUserIdAndCouponId(anyLong(), eq(1L))).thenReturn(false);
         when(userCouponRepository.save(any(UserCoupon.class))).thenAnswer(invocation -> {
             UserCoupon userCoupon = invocation.getArgument(0);
@@ -180,7 +177,6 @@ class IssueCouponUseCaseTest {
         AtomicInteger issueCount = new AtomicInteger(0);
 
         when(couponRepository.findByIdWithLock(1L)).thenReturn(Optional.of(coupon));
-        when(couponRepository.save(any(Coupon.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(userCouponRepository.existsByUserIdAndCouponId(userId, 1L)).thenReturn(false);
         when(userCouponRepository.save(any(UserCoupon.class))).thenAnswer(invocation -> {
             if (issueCount.incrementAndGet() > 1) {
