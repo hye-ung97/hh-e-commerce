@@ -22,8 +22,6 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     int countAvailableCoupons(@Param("now") LocalDateTime now);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-
     @Query("SELECT c FROM Coupon c WHERE c.id = :couponId")
-
     Optional<Coupon> findByIdWithLock(@Param("couponId") Long couponId);
 }
