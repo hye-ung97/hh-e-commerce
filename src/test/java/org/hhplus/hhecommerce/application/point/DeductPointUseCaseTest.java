@@ -16,7 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,9 +36,13 @@ class DeductPointUseCaseTest {
         Long userId = 1L;
         Point point = new Point(userId);
         point.charge(10000);
+        Point deductedPoint = new Point(userId);
+        deductedPoint.charge(7000);
 
-        when(pointRepository.findByUserId(userId)).thenReturn(Optional.of(point));
-        when(pointRepository.save(any(Point.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pointRepository.findByUserId(userId))
+                .thenReturn(Optional.of(point))
+                .thenReturn(Optional.of(deductedPoint));
+        when(pointRepository.deductPoint(eq(userId), eq(3000))).thenReturn(1);
 
         DeductRequest request = new DeductRequest(3000);
 
@@ -47,7 +52,7 @@ class DeductPointUseCaseTest {
         // Then
         assertThat(response).isNotNull();
         assertThat(response.userId()).isEqualTo(userId);
-        assertThat(response.amount()).isEqualTo(7000); // 10000 - 3000
+        assertThat(response.amount()).isEqualTo(7000);
         assertThat(response.deductedAmount()).isEqualTo(3000);
         assertThat(response.message()).isEqualTo("Point deducted successfully");
     }
@@ -61,6 +66,7 @@ class DeductPointUseCaseTest {
         point.charge(1000);
 
         when(pointRepository.findByUserId(userId)).thenReturn(Optional.of(point));
+        when(pointRepository.deductPoint(eq(userId), eq(5000))).thenReturn(0);
 
         DeductRequest request = new DeductRequest(5000);
 
@@ -80,7 +86,8 @@ class DeductPointUseCaseTest {
 
         // When & Then
         assertThatThrownBy(() -> deductPointUseCase.execute(1L, request))
-            .isInstanceOf(PointException.class);
+            .isInstanceOf(PointException.class)
+            .hasFieldOrPropertyWithValue("errorCode", PointErrorCode.POINT_NOT_FOUND);
     }
 
     @Test
@@ -88,18 +95,23 @@ class DeductPointUseCaseTest {
     void 충전과_차감을_연속으로_수행할_수_있다() {
         // Given
         Long userId = 1L;
-        Point point = new Point(userId);
+        Point point1 = new Point(userId);
+        point1.charge(7000);
+        Point point2 = new Point(userId);
+        point2.charge(10000);
 
-        when(pointRepository.findByUserId(userId)).thenReturn(Optional.of(point));
-        when(pointRepository.save(any(Point.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pointRepository.findByUserId(userId))
+                .thenReturn(Optional.of(new Point(userId)))
+                .thenReturn(Optional.of(point1))
+                .thenReturn(Optional.of(point1))
+                .thenReturn(Optional.of(point2));
+        when(pointRepository.deductPoint(eq(userId), anyInt())).thenReturn(1);
 
         // When
-        point.charge(10000);
         deductPointUseCase.execute(userId, new DeductRequest(3000));
-        point.charge(5000);
         DeductResponse finalResponse = deductPointUseCase.execute(userId, new DeductRequest(2000));
 
         // Then
-        assertThat(finalResponse.amount()).isEqualTo(10000); // 10000 - 3000 + 5000 - 2000
+        assertThat(finalResponse.amount()).isEqualTo(10000);
     }
 }

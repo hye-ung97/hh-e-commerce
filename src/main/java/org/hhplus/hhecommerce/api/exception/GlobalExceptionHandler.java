@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.retry.ExhaustedRetryException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -20,6 +21,20 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = e.getErrorCode();
         ErrorResponse response = new ErrorResponse(errorCode.getCode(), e.getMessage());
         return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
+    }
+
+    @ExceptionHandler(ExhaustedRetryException.class)
+    public ResponseEntity<ErrorResponse> handleExhaustedRetryException(ExhaustedRetryException e) {
+        log.warn("재시도 중 예외 발생: {}", e.getMessage());
+
+        Throwable cause = e.getCause();
+        if (cause instanceof CustomException) {
+            return handleBusinessException((CustomException) cause);
+        }
+
+        log.error("ExhaustedRetryException - cause: {}", cause != null ? cause.getClass().getName() : "null", e);
+        ErrorResponse response = new ErrorResponse("RETRY_EXHAUSTED", "요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
     @ExceptionHandler(OptimisticLockException.class)

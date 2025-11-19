@@ -23,14 +23,18 @@ public class IssueCouponUseCase {
 
     @Transactional
     public IssueCouponResponse execute(Long userId, Long couponId) {
+        if (userCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
+            throw new CouponException(CouponErrorCode.COUPON_ALREADY_ISSUED);
+        }
+
         Coupon coupon = couponRepository.findByIdWithLock(couponId)
                 .orElseThrow(() -> new CouponException(CouponErrorCode.COUPON_NOT_FOUND));
-        coupon.issue();
 
         if (userCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
             throw new CouponException(CouponErrorCode.COUPON_ALREADY_ISSUED);
         }
-        couponRepository.save(coupon);
+
+        coupon.issue();
 
         try {
             UserCoupon userCoupon = new UserCoupon(userId, couponId, LocalDateTime.now().plusDays(30));
