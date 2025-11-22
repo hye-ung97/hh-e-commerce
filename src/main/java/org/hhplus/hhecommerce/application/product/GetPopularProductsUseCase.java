@@ -5,6 +5,7 @@ import org.hhplus.hhecommerce.api.dto.product.PopularProductsResponse;
 import org.hhplus.hhecommerce.domain.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.order.PopularProductProjection;
 import org.hhplus.hhecommerce.domain.product.ProductRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -21,6 +22,7 @@ public class GetPopularProductsUseCase {
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
 
+    @Cacheable(value = "products:popular", key = "'top5'")
     public PopularProductsResponse execute() {
         LocalDateTime startDate = LocalDateTime.now().minusDays(POPULAR_PRODUCT_DAYS);
 
