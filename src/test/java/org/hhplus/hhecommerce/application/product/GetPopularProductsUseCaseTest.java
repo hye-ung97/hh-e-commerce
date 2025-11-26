@@ -1,16 +1,19 @@
 package org.hhplus.hhecommerce.application.product;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hhplus.hhecommerce.api.dto.product.PopularProductsResponse;
 import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.order.PopularProductProjection;
 import org.hhplus.hhecommerce.domain.product.ProductRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,8 +31,25 @@ class GetPopularProductsUseCaseTest {
     @Mock
     private OrderRepository orderRepository;
 
-    @InjectMocks
+    @Mock
+    private RedisTemplate<String, Object> redisObjectTemplate;
+
+    @Mock
+    private ValueOperations<String, Object> valueOperations;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
     private GetPopularProductsUseCase getPopularProductsUseCase;
+
+    @BeforeEach
+    void setUp() {
+        getPopularProductsUseCase = new GetPopularProductsUseCase(
+                productRepository, orderRepository, redisObjectTemplate, objectMapper
+        );
+        when(redisObjectTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get(any())).thenReturn(null); // 캐시 미스 시뮬레이션
+    }
 
     @Test
     @DisplayName("주문이 없을 때 최근 등록된 상품을 반환한다")

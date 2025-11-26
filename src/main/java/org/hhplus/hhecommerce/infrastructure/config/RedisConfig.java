@@ -88,9 +88,20 @@ public class RedisConfig {
                         RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer())
                 );
 
+        // 인기 상품 캐시 설정 (26시간 - 스케줄러 실패 버퍼)
+        RedisCacheConfiguration productsPopularCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofHours(26))
+                .serializeKeysWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())
+                )
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer())
+                );
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultCacheConfig)
                 .withCacheConfiguration("products:list", productsListCacheConfig)
+                .withCacheConfiguration("products:popular", productsPopularCacheConfig)
                 .build();
     }
 }
