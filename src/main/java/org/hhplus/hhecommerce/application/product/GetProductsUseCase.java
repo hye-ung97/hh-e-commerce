@@ -6,6 +6,7 @@ import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
 import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
 import org.hhplus.hhecommerce.domain.product.ProductRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ public class GetProductsUseCase {
     private final ProductRepository productRepository;
     private final ProductOptionRepository productOptionRepository;
 
+    @Cacheable(value = "products:list", key = "#page + '-' + #size")
     public ProductListResponse execute(int page, int size) {
         List<Product> products = productRepository.findAll(PageRequest.of(page, size)).getContent();
         long totalCount = productRepository.count();
