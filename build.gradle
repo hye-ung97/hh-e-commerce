@@ -29,10 +29,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
     implementation 'org.apache.commons:commons-lang3:3.18.0'
     implementation 'org.springframework.retry:spring-retry'
     implementation 'org.springframework:spring-aspects'
+    implementation 'org.redisson:redisson-spring-boot-starter:3.36.0'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
@@ -41,6 +44,7 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers:1.19.3'
     testImplementation 'org.testcontainers:mysql:1.19.3'
     testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    testImplementation 'com.redis:testcontainers-redis:2.2.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

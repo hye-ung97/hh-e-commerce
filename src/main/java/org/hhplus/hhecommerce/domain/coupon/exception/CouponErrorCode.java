@@ -12,7 +12,9 @@ public enum CouponErrorCode implements ErrorCode {
     COUPON_EXPIRED("만료된 쿠폰입니다.", HttpStatus.BAD_REQUEST),
     COUPON_ALREADY_USED("이미 사용된 쿠폰입니다.", HttpStatus.BAD_REQUEST),
     COUPON_UNAVAILABLE("사용 불가능한 쿠폰입니다.", HttpStatus.BAD_REQUEST),
-    MIN_ORDER_AMOUNT_NOT_MET("최소 주문 금액을 충족하지 않습니다.", HttpStatus.BAD_REQUEST);
+    MIN_ORDER_AMOUNT_NOT_MET("최소 주문 금액을 충족하지 않습니다.", HttpStatus.BAD_REQUEST),
+    COUPON_ISSUE_TIMEOUT("쿠폰 발급 대기 시간이 초과되었습니다.", HttpStatus.REQUEST_TIMEOUT),
+    COUPON_ISSUE_FAILED("쿠폰 발급에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final String message;
     private final HttpStatus httpStatus;
