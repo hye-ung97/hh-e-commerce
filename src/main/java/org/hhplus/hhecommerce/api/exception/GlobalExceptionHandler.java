@@ -20,6 +20,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBusinessException(CustomException e) {
         ErrorCode errorCode = e.getErrorCode();
         ErrorResponse response = new ErrorResponse(errorCode.getCode(), e.getMessage());
+
+        if ("ORDER_CONFLICT".equals(errorCode.getCode())) {
+            return ResponseEntity.status(errorCode.getHttpStatus())
+                    .header("Retry-After", "2")
+                    .body(response);
+        }
+
         return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
     }
 
