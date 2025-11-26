@@ -3,19 +3,25 @@ package org.hhplus.hhecommerce.application.order;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderRequest;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderResponse;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponException;
+import org.hhplus.hhecommerce.domain.order.OrderRepository;
+import org.hhplus.hhecommerce.domain.order.OrderStatus;
 import org.hhplus.hhecommerce.domain.order.exception.OrderErrorCode;
 import org.hhplus.hhecommerce.domain.order.exception.OrderException;
 import org.hhplus.hhecommerce.domain.point.exception.PointErrorCode;
 import org.hhplus.hhecommerce.domain.point.exception.PointException;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -24,10 +30,28 @@ import static org.mockito.Mockito.*;
 class CreateOrderUseCaseTest {
 
     @Mock
+    private RedissonClient redissonClient;
+
+    @Mock
     private OrderTransactionService orderTransactionService;
+
+    @Mock
+    private OrderRepository orderRepository;
+
+    @Mock
+    private RLock rLock;
 
     @InjectMocks
     private CreateOrderUseCase createOrderUseCase;
+
+    @BeforeEach
+    void setUp() throws InterruptedException {
+        lenient().when(redissonClient.getLock(anyString())).thenReturn(rLock);
+        lenient().when(rLock.tryLock(anyLong(), anyLong(), any(TimeUnit.class))).thenReturn(true);
+        lenient().when(rLock.isHeldByCurrentThread()).thenReturn(true);
+
+        lenient().when(orderRepository.existsByUserIdAndStatus(anyLong(), any(OrderStatus.class))).thenReturn(false);
+    }
 
     @Test
     @DisplayName("정상적으로 주문을 생성할 수 있다")
@@ -191,5 +215,41 @@ class CreateOrderUseCaseTest {
         // When & Then
         assertThatThrownBy(() -> createOrderUseCase.execute(userId, request))
             .isInstanceOf(CouponException.class);
+    }
+
+    @Test
+    @DisplayName("이미 진행 중인 주문이 있으면 새로운 주문을 생성할 수 없다")
+    void 이미_진행_중인_주문이_있으면_새로운_주문을_생성할_수_없다() throws InterruptedException {
+        // Given
+        Long userId = 1L;
+        CreateOrderRequest request = new CreateOrderRequest(null);
+
+        when(orderRepository.existsByUserIdAndStatus(userId, OrderStatus.PENDING)).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> createOrderUseCase.execute(userId, request))
+            .isInstanceOf(OrderException.class)
+            .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.ORDER_IN_PROGRESS);
+
+        verify(rLock, never()).unlock();
+        verify(orderTransactionService, never()).executeOrderLogic(any(), any());
+    }
+
+    @Test
+    @DisplayName("락 획득에 실패하면 예외가 발생한다")
+    void 락_획득_실패_시_예외_발생() throws InterruptedException {
+        // Given
+        Long userId = 1L;
+        CreateOrderRequest request = new CreateOrderRequest(null);
+
+        when(rLock.tryLock(anyLong(), anyLong(), any(TimeUnit.class))).thenReturn(false);
+        when(rLock.isHeldByCurrentThread()).thenReturn(false);
+
+        // When & Then
+        assertThatThrownBy(() -> createOrderUseCase.execute(userId, request))
+            .isInstanceOf(OrderException.class)
+            .hasFieldOrPropertyWithValue("errorCode", OrderErrorCode.LOCK_ACQUISITION_FAILED);
+
+        verify(rLock, never()).unlock();
     }
 }

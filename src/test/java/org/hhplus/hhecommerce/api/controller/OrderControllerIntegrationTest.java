@@ -11,6 +11,9 @@ import org.hhplus.hhecommerce.domain.coupon.CouponRepository;
 import org.hhplus.hhecommerce.domain.coupon.CouponType;
 import org.hhplus.hhecommerce.domain.coupon.UserCoupon;
 import org.hhplus.hhecommerce.domain.coupon.UserCouponRepository;
+import org.hhplus.hhecommerce.domain.order.Order;
+import org.hhplus.hhecommerce.domain.order.OrderRepository;
+import org.hhplus.hhecommerce.domain.order.OrderStatus;
 import org.hhplus.hhecommerce.domain.point.Point;
 import org.hhplus.hhecommerce.domain.point.PointRepository;
 import org.hhplus.hhecommerce.domain.product.Product;
@@ -74,6 +77,9 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
 
     @Autowired
     private UserCouponRepository userCouponRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
 
     @Autowired
     private EntityManager entityManager;
@@ -319,6 +325,13 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(createRequest)))
                     .andExpect(status().isOk());
+
+            List<Order> orders = orderRepository.findByUserId(testUser.getId());
+            if (!orders.isEmpty()) {
+                Order order = orders.get(orders.size() - 1);
+                order.confirm();
+                orderRepository.save(order);
+            }
 
             entityManager.flush();
             entityManager.clear();
@@ -975,6 +988,14 @@ class OrderControllerIntegrationTest extends TestContainersConfig {
         }
 
         User firstUser = users.get(0);
+        List<Order> previousOrders = orderRepository.findByUserId(firstUser.getId());
+        for (Order order : previousOrders) {
+            if (order.getStatus() == OrderStatus.PENDING) {
+                order.confirm();
+                orderRepository.save(order);
+            }
+        }
+
         Product newProduct = new Product("추가상품", "테스트", "카테고리");
         newProduct = productRepository.save(newProduct);
 

@@ -10,7 +10,9 @@ public enum OrderErrorCode implements ErrorCode {
     EMPTY_CART("장바구니가 비어있습니다.", HttpStatus.BAD_REQUEST),
     ORDER_IN_PROGRESS("이미 진행 중인 주문이 있습니다.", HttpStatus.CONFLICT),
     ORDER_CONFLICT("동시 주문 처리 중 충돌이 발생했습니다.", HttpStatus.CONFLICT),
-    ORDER_FAILED("주문 처리에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+    ORDER_FAILED("주문 처리에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    LOCK_ACQUISITION_FAILED("분산락 획득에 실패했습니다.", HttpStatus.TOO_MANY_REQUESTS),
+    LOCK_INTERRUPTED("분산락 처리 중 인터럽트가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final String message;
     private final HttpStatus httpStatus;
