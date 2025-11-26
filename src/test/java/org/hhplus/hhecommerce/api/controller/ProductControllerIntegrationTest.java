@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,9 @@ class ProductControllerIntegrationTest extends TestContainersConfig {
     @Autowired
     private ProductOptionRepository productOptionRepository;
 
+    @Autowired
+    private RedisTemplate<String, Object> redisObjectTemplate;
+
     private Product product1;
     private Product product2;
     private ProductOption option1;
@@ -39,6 +43,9 @@ class ProductControllerIntegrationTest extends TestContainersConfig {
 
     @BeforeEach
     void setUp() {
+        // 인기 상품 캐시 클리어 (스케줄러가 빈 캐시를 설정했을 수 있음)
+        redisObjectTemplate.delete("products:popular::top5");
+
         product1 = new Product("노트북", "고성능 노트북", "전자제품");
         product1 = productRepository.save(product1);
 
