@@ -8,6 +8,7 @@ import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.hhplus.hhecommerce.domain.product.ProductOptionRepository;
 import org.hhplus.hhecommerce.domain.product.ProductRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class GetProductDetailUseCase {
     private final ProductRepository productRepository;
     private final ProductOptionRepository productOptionRepository;
 
+    @Cacheable(value = "products:detail", key = "#productId")
     public ProductDetailResponse execute(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));

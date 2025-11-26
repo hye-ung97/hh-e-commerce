@@ -98,10 +98,21 @@ public class RedisConfig {
                         RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer())
                 );
 
+        // 상품 상세 캐시 설정 (5분)
+        RedisCacheConfiguration productDetailCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(5))
+                .serializeKeysWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())
+                )
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer())
+                );
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultCacheConfig)
                 .withCacheConfiguration("products:list", productsListCacheConfig)
                 .withCacheConfiguration("products:popular", productsPopularCacheConfig)
+                .withCacheConfiguration("products:detail", productDetailCacheConfig)
                 .build();
     }
 }
