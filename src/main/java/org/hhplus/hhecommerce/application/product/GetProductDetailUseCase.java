@@ -21,7 +21,7 @@ public class GetProductDetailUseCase {
     private final ProductRepository productRepository;
     private final ProductOptionRepository productOptionRepository;
 
-    @Cacheable(value = "products:detail", key = "#productId")
+    @Cacheable(value = "products:detail", key = "#productId", sync = true)
     public ProductDetailResponse execute(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND));

@@ -31,6 +31,7 @@ import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.hhplus.hhecommerce.domain.user.User;
 import org.hhplus.hhecommerce.domain.user.UserRepository;
+import org.hhplus.hhecommerce.infrastructure.cache.ProductCacheManager;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -55,6 +56,7 @@ public class OrderTransactionService {
     private final ProductOptionRepository productOptionRepository;
     private final CouponRepository couponRepository;
     private final ProductRepository productRepository;
+    private final ProductCacheManager productCacheManager;
 
     @Retryable(
         retryFor = OptimisticLockException.class,
@@ -131,6 +133,8 @@ public class OrderTransactionService {
         }
 
         cartRepository.deleteAllByUserId(userId);
+
+        productCacheManager.evictProductCaches();
 
         Map<Long, ProductOption> productOptionMap = orderItems.stream()
                 .map(OrderItem::getProductOptionId)

@@ -88,9 +88,9 @@ public class RedisConfig {
                         RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer())
                 );
 
-        // 인기 상품 캐시 설정 (26시간 - 스케줄러 실패 버퍼)
+        // 인기 상품 캐시 설정 (48시간 - 스케줄러 2회 실패 버퍼)
         RedisCacheConfiguration productsPopularCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(26))
+                .entryTtl(Duration.ofHours(48))
                 .serializeKeysWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())
                 )
