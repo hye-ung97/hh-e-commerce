@@ -20,7 +20,7 @@ public class GetProductsUseCase {
     private final ProductRepository productRepository;
     private final ProductOptionRepository productOptionRepository;
 
-    @Cacheable(value = "products:list", key = "#page + '-' + #size")
+    @Cacheable(value = "products:list", key = "#page + '-' + #size", sync = true)
     public ProductListResponse execute(int page, int size) {
         List<Product> products = productRepository.findAll(PageRequest.of(page, size)).getContent();
         long totalCount = productRepository.count();

@@ -1,5 +1,6 @@
 package org.hhplus.hhecommerce.application.coupon;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.hhplus.hhecommerce.api.dto.coupon.IssueCouponResponse;
 import org.hhplus.hhecommerce.domain.coupon.Coupon;
 import org.hhplus.hhecommerce.domain.coupon.CouponType;
@@ -8,10 +9,10 @@ import org.hhplus.hhecommerce.domain.coupon.exception.CouponException;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponErrorCode;
 import org.hhplus.hhecommerce.domain.coupon.CouponRepository;
 import org.hhplus.hhecommerce.domain.coupon.UserCouponRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RLock;
@@ -43,8 +44,17 @@ class IssueCouponUseCaseTest {
     @Mock
     private RLock lock;
 
-    @InjectMocks
     private IssueCouponUseCase issueCouponUseCase;
+
+    @BeforeEach
+    void setUp() {
+        issueCouponUseCase = new IssueCouponUseCase(
+                couponRepository,
+                userCouponRepository,
+                redissonClient,
+                new SimpleMeterRegistry()
+        );
+    }
 
     @Test
     @DisplayName("정상적으로 쿠폰을 발급할 수 있다")

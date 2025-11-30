@@ -1,5 +1,6 @@
 package org.hhplus.hhecommerce.application.order;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderRequest;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderResponse;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponException;
@@ -14,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RLock;
@@ -41,11 +41,17 @@ class CreateOrderUseCaseTest {
     @Mock
     private RLock rLock;
 
-    @InjectMocks
     private CreateOrderUseCase createOrderUseCase;
 
     @BeforeEach
     void setUp() throws InterruptedException {
+        createOrderUseCase = new CreateOrderUseCase(
+                redissonClient,
+                orderTransactionService,
+                orderRepository,
+                new SimpleMeterRegistry()
+        );
+
         lenient().when(redissonClient.getLock(anyString())).thenReturn(rLock);
         lenient().when(rLock.tryLock(anyLong(), anyLong(), any(TimeUnit.class))).thenReturn(true);
         lenient().when(rLock.isHeldByCurrentThread()).thenReturn(true);
