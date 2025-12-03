@@ -14,6 +14,8 @@ public interface UserCouponRepository extends JpaRepository<UserCoupon, Long> {
 
     List<UserCoupon> findByUserId(Long userId);
 
+    List<UserCoupon> findByCouponId(Long couponId);
+
     boolean existsByUserIdAndCouponId(Long userId, Long couponId);
 
     @Query("SELECT uc FROM UserCoupon uc WHERE uc.userId = :userId AND uc.status = 'AVAILABLE' AND uc.expiredAt >= :now")

@@ -15,6 +15,7 @@ import org.hhplus.hhecommerce.domain.coupon.UserCouponRepository;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponErrorCode;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponException;
 import org.hhplus.hhecommerce.domain.order.Order;
+import org.hhplus.hhecommerce.domain.order.OrderCompletedEvent;
 import org.hhplus.hhecommerce.domain.order.OrderItem;
 import org.hhplus.hhecommerce.domain.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.order.exception.OrderErrorCode;
@@ -32,6 +33,7 @@ import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.hhplus.hhecommerce.domain.user.User;
 import org.hhplus.hhecommerce.domain.user.UserRepository;
 import org.hhplus.hhecommerce.infrastructure.cache.ProductCacheManager;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -39,6 +41,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,6 +60,7 @@ public class OrderTransactionService {
     private final CouponRepository couponRepository;
     private final ProductRepository productRepository;
     private final ProductCacheManager productCacheManager;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Retryable(
         retryFor = OptimisticLockException.class,
@@ -79,10 +83,13 @@ public class OrderTransactionService {
         }
 
         List<OrderItem> orderItems = new ArrayList<>();
+        Map<Long, ProductOption> productOptionMap = new HashMap<>();
 
         for (Cart cart : carts) {
             ProductOption option = productOptionRepository.findById(cart.getProductOptionId())
                     .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_OPTION_NOT_FOUND));
+
+            productOptionMap.put(option.getId(), option);
 
             int updatedProductOption = productOptionRepository.decreaseStock(option.getId(), cart.getQuantity());
             if (updatedProductOption == 0) {
@@ -136,23 +143,23 @@ public class OrderTransactionService {
 
         productCacheManager.evictProductCaches();
 
-        Map<Long, ProductOption> productOptionMap = orderItems.stream()
-                .map(OrderItem::getProductOptionId)
-                .distinct()
-                .collect(Collectors.toMap(
-                        optionId -> optionId,
-                        optionId -> productOptionRepository.findById(optionId)
-                                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_OPTION_NOT_FOUND))
-                ));
+        publishOrderCompletedEvent(order.getId(), orderItems, productOptionMap);
 
-        Map<Long, Product> productMap = productOptionMap.values().stream()
+        List<Long> productIds = productOptionMap.values().stream()
                 .map(ProductOption::getProductId)
                 .distinct()
-                .collect(Collectors.toMap(
-                        productId -> productId,
-                        productId -> productRepository.findById(productId)
-                                .orElseThrow(() -> new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND))
-                ));
+                .toList();
+
+        Map<Long, Product> productMap = productRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, product -> product));
+
+        if (productMap.size() != productIds.size()) {
+            List<Long> missingIds = productIds.stream()
+                    .filter(id -> !productMap.containsKey(id))
+                    .toList();
+            log.error("상품 조회 실패 - 존재하지 않는 상품: {}", missingIds);
+            throw new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND);
+        }
 
         List<CreateOrderResponse.OrderItemInfo> itemInfos = orderItems.stream()
                 .map(item -> {
@@ -188,5 +195,23 @@ public class OrderTransactionService {
     public CreateOrderResponse recoverFromOptimisticLock(OptimisticLockException e, Long userId, CreateOrderRequest request) {
         log.error("낙관적 락 재시도 실패 - userId: {}, 최대 재시도 횟수 초과", userId, e);
         throw new OrderException(OrderErrorCode.ORDER_CONFLICT);
+    }
+
+    private void publishOrderCompletedEvent(Long orderId, List<OrderItem> orderItems, Map<Long, ProductOption> productOptionMap) {
+        Map<Long, Integer> productQuantityMap = orderItems.stream()
+                .collect(Collectors.groupingBy(
+                        item -> {
+                            ProductOption option = productOptionMap.get(item.getProductOptionId());
+                            return option != null ? option.getProductId() : -1L;
+                        },
+                        Collectors.summingInt(OrderItem::getQuantity)
+                ));
+
+        productQuantityMap.remove(-1L);
+
+        if (!productQuantityMap.isEmpty()) {
+            eventPublisher.publishEvent(new OrderCompletedEvent(orderId, productQuantityMap));
+            log.debug("주문 완료 이벤트 발행 - orderId: {}, products: {}", orderId, productQuantityMap.size());
+        }
     }
 }

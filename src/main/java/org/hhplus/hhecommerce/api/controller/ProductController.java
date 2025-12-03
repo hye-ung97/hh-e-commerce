@@ -8,6 +8,8 @@ import org.hhplus.hhecommerce.api.dto.product.*;
 import org.hhplus.hhecommerce.application.product.GetPopularProductsUseCase;
 import org.hhplus.hhecommerce.application.product.GetProductDetailUseCase;
 import org.hhplus.hhecommerce.application.product.GetProductsUseCase;
+import org.hhplus.hhecommerce.application.ranking.GetRealtimeRankingUseCase;
+import org.hhplus.hhecommerce.domain.ranking.RankingType;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Product", description = "상품 관리 API")
@@ -19,6 +21,7 @@ public class ProductController {
     private final GetProductsUseCase getProductsUseCase;
     private final GetProductDetailUseCase getProductDetailUseCase;
     private final GetPopularProductsUseCase getPopularProductsUseCase;
+    private final GetRealtimeRankingUseCase getRealtimeRankingUseCase;
 
     @Operation(summary = "상품 목록 조회")
     @GetMapping
@@ -41,5 +44,21 @@ public class ProductController {
     @GetMapping("/popular")
     public PopularProductsResponse getPopularProducts() {
         return getPopularProductsUseCase.execute();
+    }
+
+    @Operation(summary = "실시간 일간 랭킹 조회")
+    @GetMapping("/ranking/daily")
+    public RealtimeRankingResponse getDailyRanking(
+        @Parameter(description = "조회할 개수 (최대 50)", example = "10") @RequestParam(defaultValue = "10") int limit
+    ) {
+        return getRealtimeRankingUseCase.execute(RankingType.DAILY, limit);
+    }
+
+    @Operation(summary = "실시간 주간 랭킹 조회")
+    @GetMapping("/ranking/weekly")
+    public RealtimeRankingResponse getWeeklyRanking(
+        @Parameter(description = "조회할 개수 (최대 50)", example = "10") @RequestParam(defaultValue = "10") int limit
+    ) {
+        return getRealtimeRankingUseCase.execute(RankingType.WEEKLY, limit);
     }
 }
