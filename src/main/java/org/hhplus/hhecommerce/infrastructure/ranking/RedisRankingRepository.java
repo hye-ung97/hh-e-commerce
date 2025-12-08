@@ -9,21 +9,22 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Repository
-@RequiredArgsConstructor
 public class RedisRankingRepository implements RankingRepository {
 
     private static final String DAILY_KEY_PREFIX = "ranking:daily:";
@@ -34,6 +35,44 @@ public class RedisRankingRepository implements RankingRepository {
     private static final Duration WEEKLY_TTL = Duration.ofDays(8);
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final DefaultRedisScript<Long> incrementScoreScript;
+
+    public RedisRankingRepository(RedisTemplate<String, String> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+        this.incrementScoreScript = createIncrementScoreScript();
+    }
+
+    /**
+     * 점수 증가, 타임스탬프 저장, TTL 설정을 원자적으로 수행하는 Lua 스크립트.
+     * Sorted Set과 Hash의 생명주기를 동기화하여 메모리 누수를 방지합니다.
+     */
+    private DefaultRedisScript<Long> createIncrementScoreScript() {
+        String script = """
+            -- KEYS[1]: ranking sorted set key
+            -- KEYS[2]: timestamp hash key
+            -- ARGV[1]: productId
+            -- ARGV[2]: score increment
+            -- ARGV[3]: current timestamp
+            -- ARGV[4]: TTL in seconds
+
+            -- 1. 점수 증가 (Sorted Set)
+            redis.call('ZINCRBY', KEYS[1], ARGV[2], ARGV[1])
+
+            -- 2. 타임스탬프 저장 (Hash)
+            redis.call('HSET', KEYS[2], ARGV[1], ARGV[3])
+
+            -- 3. 두 키의 TTL을 동일하게 설정/갱신
+            redis.call('EXPIRE', KEYS[1], ARGV[4])
+            redis.call('EXPIRE', KEYS[2], ARGV[4])
+
+            return 1
+            """;
+
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptText(script);
+        redisScript.setResultType(Long.class);
+        return redisScript;
+    }
 
     @Override
     public void incrementScore(RankingType type, Long productId, double score) {
@@ -41,14 +80,25 @@ public class RedisRankingRepository implements RankingRepository {
         String timestampKey = rankingKey + TIMESTAMP_SUFFIX;
         String productIdStr = productId.toString();
 
-        redisTemplate.opsForZSet().incrementScore(rankingKey, productIdStr, score);
+        Duration ttl = (type == RankingType.DAILY) ? DAILY_TTL : WEEKLY_TTL;
+        long ttlSeconds = ttl.toSeconds();
 
-        redisTemplate.opsForHash().put(timestampKey, productIdStr, String.valueOf(System.currentTimeMillis()));
+        try {
+            List<String> keys = Arrays.asList(rankingKey, timestampKey);
+            redisTemplate.execute(
+                    incrementScoreScript,
+                    keys,
+                    productIdStr,
+                    String.valueOf(score),
+                    String.valueOf(System.currentTimeMillis()),
+                    String.valueOf(ttlSeconds)
+            );
 
-        setTTLIfNotExists(rankingKey, type);
-        setTTLIfNotExists(timestampKey, type);
-
-        log.debug("랭킹 점수 업데이트 - type: {}, productId: {}, score: +{}", type, productId, score);
+            log.debug("랭킹 점수 업데이트 - type: {}, productId: {}, score: +{}", type, productId, score);
+        } catch (Exception e) {
+            log.error("랭킹 점수 업데이트 실패 - type: {}, productId: {}, score: {}", type, productId, score, e);
+            throw e;
+        }
     }
 
     @Override
@@ -123,15 +173,6 @@ public class RedisRankingRepository implements RankingRepository {
         int year = date.getYear();
         int week = date.get(weekFields.weekOfWeekBasedYear());
         return String.format("%d:%02d", year, week);
-    }
-
-    private void setTTLIfNotExists(String key, RankingType type) {
-        Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
-        if (ttl == null || ttl < 0) {
-            Duration duration = type == RankingType.DAILY ? DAILY_TTL : WEEKLY_TTL;
-            redisTemplate.expire(key, duration);
-            log.debug("TTL 설정 - key: {}, duration: {}", key, duration);
-        }
     }
 
     private Map<String, Long> buildTimestampMap(List<String> productIds, List<Object> timestamps) {

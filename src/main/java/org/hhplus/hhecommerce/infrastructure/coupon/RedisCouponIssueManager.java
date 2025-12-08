@@ -7,7 +7,6 @@ import org.hhplus.hhecommerce.domain.coupon.CouponRepository;
 import org.hhplus.hhecommerce.domain.coupon.UserCouponRepository;
 import org.hhplus.hhecommerce.infrastructure.config.CouponProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
@@ -18,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-@Primary
 @Component
 @ConditionalOnProperty(name = "coupon.issue.strategy", havingValue = "redis", matchIfMissing = false)
 public class RedisCouponIssueManager implements CouponIssueManager {
@@ -33,6 +31,10 @@ public class RedisCouponIssueManager implements CouponIssueManager {
     private static final int INIT_WAIT_MAX_RETRIES = 50;
     private static final long INIT_WAIT_INTERVAL_MS = 100;
 
+    /**
+     * Lua 스크립트 결과 코드.
+     * 음수는 실패, 양수는 성공을 나타냅니다.
+     */
     private static final Long RESULT_SUCCESS = 1L;
     private static final Long RESULT_ALREADY_ISSUED = -1L;
     private static final Long RESULT_OUT_OF_STOCK = -2L;
@@ -43,7 +45,7 @@ public class RedisCouponIssueManager implements CouponIssueManager {
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
     private final CouponProperties couponProperties;
-    private final DefaultRedisScript<Long> issueScript;
+    private final DefaultRedisScript<List> issueScript;
     private final DefaultRedisScript<Long> confirmScript;
     private final DefaultRedisScript<Long> rollbackScript;
 
@@ -60,14 +62,27 @@ public class RedisCouponIssueManager implements CouponIssueManager {
         this.rollbackScript = createRollbackScript();
     }
 
-    private DefaultRedisScript<Long> createIssueScript() {
+    /**
+     * 쿠폰 발급 Lua 스크립트.
+     *
+     * <p>반환값: {코드, 추가정보1, 추가정보2, 메시지}</p>
+     * <ul>
+     *   <li>성공: {1, 남은재고, 0, "SUCCESS"}</li>
+     *   <li>이미 발급: {-1, 0, 0, "ALREADY_ISSUED"}</li>
+     *   <li>재고 소진: {-2, 0, 0, "OUT_OF_STOCK"}</li>
+     *   <li>미초기화: {-3, 0, 0, "NOT_INITIALIZED"}</li>
+     *   <li>처리 중: {-4, 0, 경과시간ms, "PENDING_IN_PROGRESS"}</li>
+     * </ul>
+     */
+    private DefaultRedisScript<List> createIssueScript() {
         String script = """
             -- KEYS[1]: stock key, KEYS[2]: issued set, KEYS[3]: pending hash
             -- ARGV[1]: userId, ARGV[2]: current timestamp, ARGV[3]: pending timeout ms
+            -- 반환: {코드, 남은재고, 경과시간, 메시지}
 
             -- 1. 이미 발급 완료 체크
             if redis.call('SISMEMBER', KEYS[2], ARGV[1]) == 1 then
-                return -1
+                return {-1, 0, 0, "ALREADY_ISSUED"}
             end
 
             -- 2. 이미 예약 중인지 체크 (타임아웃 내 중복 요청 방지)
@@ -75,7 +90,7 @@ public class RedisCouponIssueManager implements CouponIssueManager {
             if pendingTime then
                 local elapsed = tonumber(ARGV[2]) - tonumber(pendingTime)
                 if elapsed < tonumber(ARGV[3]) then
-                    return -4
+                    return {-4, 0, elapsed, "PENDING_IN_PROGRESS"}
                 end
                 -- 타임아웃된 pending은 정리하고 재시도 허용
                 redis.call('HDEL', KEYS[3], ARGV[1])
@@ -85,30 +100,30 @@ public class RedisCouponIssueManager implements CouponIssueManager {
             -- 3. 재고 키 존재 여부 확인
             local stock = redis.call('GET', KEYS[1])
             if stock == false then
-                return -3
+                return {-3, 0, 0, "NOT_INITIALIZED"}
             end
 
             -- 4. 재고 확인
             if tonumber(stock) <= 0 then
-                return -2
+                return {-2, 0, 0, "OUT_OF_STOCK"}
             end
 
             -- 5. 재고 감소 (음수 방지)
             local newStock = redis.call('DECR', KEYS[1])
             if newStock < 0 then
                 redis.call('INCR', KEYS[1])
-                return -2
+                return {-2, 0, 0, "OUT_OF_STOCK_RACE"}
             end
 
             -- 6. PENDING 상태로 기록 (issued가 아닌 pending에)
             redis.call('HSET', KEYS[3], ARGV[1], ARGV[2])
 
-            return 1
+            return {1, newStock, 0, "SUCCESS"}
             """;
 
-        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
+        DefaultRedisScript<List> redisScript = new DefaultRedisScript<>();
         redisScript.setScriptText(script);
-        redisScript.setResultType(Long.class);
+        redisScript.setResultType(List.class);
         return redisScript;
     }
 
@@ -163,31 +178,52 @@ public class RedisCouponIssueManager implements CouponIssueManager {
             String timestamp = String.valueOf(System.currentTimeMillis());
             String timeoutMs = String.valueOf(couponProperties.getTimeoutMs());
 
-            Long result = redisTemplate.execute(issueScript, keys, userId.toString(), timestamp, timeoutMs);
+            @SuppressWarnings("unchecked")
+            List<Object> result = redisTemplate.execute(issueScript, keys, userId.toString(), timestamp, timeoutMs);
 
-            if (result == null) {
-                log.error("Lua script returned null for coupon {} user {}", couponId, userId);
+            if (result == null || result.isEmpty()) {
+                log.error("Lua script returned null/empty for coupon {} user {}", couponId, userId);
                 return CouponIssueResult.ISSUE_FAILED;
             }
 
-            if (result.equals(RESULT_NOT_INITIALIZED)) {
+            ScriptResult scriptResult = parseScriptResult(result);
+
+            if (scriptResult.code().equals(RESULT_NOT_INITIALIZED)) {
                 log.info("Coupon {} not initialized in Redis, syncing from DB", couponId);
                 if (syncFromDatabase(couponId)) {
-                    result = redisTemplate.execute(issueScript, keys, userId.toString(), timestamp, timeoutMs);
-                    if (result == null) {
+                    @SuppressWarnings("unchecked")
+                    List<Object> retryResult = redisTemplate.execute(issueScript, keys, userId.toString(), timestamp, timeoutMs);
+                    if (retryResult == null || retryResult.isEmpty()) {
                         return CouponIssueResult.ISSUE_FAILED;
                     }
+                    scriptResult = parseScriptResult(retryResult);
                 } else {
                     return CouponIssueResult.COUPON_NOT_FOUND;
                 }
             }
 
-            return mapResult(result, couponId, userId);
+            return mapResult(scriptResult, couponId, userId);
         } catch (Exception e) {
             log.error("Redis coupon issue failed for coupon {} user {}", couponId, userId, e);
             return CouponIssueResult.ISSUE_FAILED;
         }
     }
+
+    /**
+     * Lua 스크립트 결과를 파싱합니다.
+     */
+    private ScriptResult parseScriptResult(List<Object> result) {
+        Long code = ((Number) result.get(0)).longValue();
+        int remainingStock = result.size() > 1 ? ((Number) result.get(1)).intValue() : -1;
+        long elapsedMs = result.size() > 2 ? ((Number) result.get(2)).longValue() : -1;
+        String message = result.size() > 3 ? String.valueOf(result.get(3)) : "";
+        return new ScriptResult(code, remainingStock, elapsedMs, message);
+    }
+
+    /**
+     * Lua 스크립트 결과를 담는 record.
+     */
+    private record ScriptResult(Long code, int remainingStock, long elapsedMs, String message) {}
 
     @Override
     public void confirm(Long couponId, Long userId) {
@@ -329,21 +365,34 @@ public class RedisCouponIssueManager implements CouponIssueManager {
         }
     }
 
-    private CouponIssueResult mapResult(Long result, Long couponId, Long userId) {
-        if (result.equals(RESULT_SUCCESS)) {
-            log.info("Coupon {} reserved (pending) for user {}", couponId, userId);
+    /**
+     * 스크립트 결과를 CouponIssueResult로 변환합니다.
+     * 상세 정보를 로그에 포함하여 디버깅을 용이하게 합니다.
+     */
+    private CouponIssueResult mapResult(ScriptResult scriptResult, Long couponId, Long userId) {
+        Long code = scriptResult.code();
+        String message = scriptResult.message();
+
+        if (code.equals(RESULT_SUCCESS)) {
+            log.info("Coupon {} reserved (pending) for user {} [remainingStock={}, message={}]",
+                    couponId, userId, scriptResult.remainingStock(), message);
             return CouponIssueResult.SUCCESS;
-        } else if (result.equals(RESULT_ALREADY_ISSUED)) {
-            log.warn("User {} already issued coupon {}", userId, couponId);
+        } else if (code.equals(RESULT_ALREADY_ISSUED)) {
+            log.warn("User {} already issued coupon {} [code={}, message={}]",
+                    userId, couponId, CouponIssueResult.ALREADY_ISSUED.getCode(), message);
             return CouponIssueResult.ALREADY_ISSUED;
-        } else if (result.equals(RESULT_OUT_OF_STOCK)) {
-            log.warn("Coupon {} out of stock", couponId);
+        } else if (code.equals(RESULT_OUT_OF_STOCK)) {
+            log.warn("Coupon {} out of stock [code={}, message={}]",
+                    couponId, CouponIssueResult.OUT_OF_STOCK.getCode(), message);
             return CouponIssueResult.OUT_OF_STOCK;
-        } else if (result.equals(RESULT_PENDING_IN_PROGRESS)) {
-            log.warn("User {} has pending request for coupon {}", userId, couponId);
+        } else if (code.equals(RESULT_PENDING_IN_PROGRESS)) {
+            log.warn("User {} has pending request for coupon {} [elapsedMs={}, code={}, message={}]",
+                    userId, couponId, scriptResult.elapsedMs(),
+                    CouponIssueResult.PENDING_IN_PROGRESS.getCode(), message);
             return CouponIssueResult.PENDING_IN_PROGRESS;
         } else {
-            log.error("Unknown result {} for coupon {} user {}", result, couponId, userId);
+            log.error("Unknown result code={} for coupon {} user {} [message={}]",
+                    code, couponId, userId, message);
             return CouponIssueResult.ISSUE_FAILED;
         }
     }
