@@ -40,23 +40,32 @@ LIMIT 5;
 처음에는 동점일 경우 순서가 바뀌어도 무방하다고 생각하였으나, 사용자 경험 측면에서 새로고침할 때마다 순서가 변경되는 것은 적절하지 않다고 판단하였다. 이에 동점일 경우 **최근 판매된 상품을 우선** 노출하는 전략을 채택하였다.
 
 ```java
-// RedisRankingRepository.java
-@Override
-public void incrementScore(RankingType type, Long productId, double score) {
-    String rankingKey = generateRankingKey(type);
-    String timestampKey = rankingKey + TIMESTAMP_SUFFIX;
-    String productIdStr = productId.toString();
+// RedisRankingRepository.java - Lua 스크립트로 원자적 실행
+private DefaultRedisScript<Long> createIncrementScoreScript() {
+    String script = """
+        -- KEYS[1]: ranking sorted set key
+        -- KEYS[2]: timestamp hash key
+        -- ARGV[1]: productId, ARGV[2]: score, ARGV[3]: timestamp, ARGV[4]: TTL
 
-    // 1. 점수 증가
-    redisTemplate.opsForZSet().incrementScore(rankingKey, productIdStr, score);
+        -- 1. 점수 증가 (Sorted Set)
+        redis.call('ZINCRBY', KEYS[1], ARGV[2], ARGV[1])
 
-    // 2. 타임스탬프 기록 (동점 시 정렬 기준)
-    redisTemplate.opsForHash().put(timestampKey, productIdStr,
-            String.valueOf(System.currentTimeMillis()));
+        -- 2. 타임스탬프 저장 (Hash)
+        redis.call('HSET', KEYS[2], ARGV[1], ARGV[3])
+
+        -- 3. 두 키의 TTL을 동일하게 설정/갱신
+        redis.call('EXPIRE', KEYS[1], ARGV[4])
+        redis.call('EXPIRE', KEYS[2], ARGV[4])
+
+        return 1
+        """;
+    // ...
 }
 ```
 
 점수용 Sorted Set과 별도로 Hash에 타임스탬프를 저장하여, 조회 시 동점인 경우 타임스탬프로 2차 정렬하도록 구현하였다.
+
+**Lua 스크립트를 사용한 이유**: 점수 증가와 타임스탬프 저장, TTL 설정을 개별 명령어로 실행할 경우, 명령어 사이에 장애가 발생하면 Sorted Set과 Hash의 생명주기가 달라져 메모리 누수가 발생할 수 있다. Lua 스크립트로 원자적 실행을 보장하여 이 문제를 해결하였다.
 
 ### 1.4 최종 아키텍처
 
@@ -155,10 +164,12 @@ Lua 스크립트를 사용하면 여러 명령어가 **원자적으로** 실행�
 ```lua
 -- 쿠폰 발급 Lua 스크립트
 -- KEYS[1]: stock, KEYS[2]: issued set, KEYS[3]: pending hash
+-- ARGV[1]: userId, ARGV[2]: current timestamp, ARGV[3]: pending timeout ms
+-- 반환: {코드, 남은재고, 경과시간, 메시지}
 
 -- 1. 이미 발급받은 사용자인지 확인
 if redis.call('SISMEMBER', KEYS[2], ARGV[1]) == 1 then
-    return -1  -- 이미 발급 완료
+    return {-1, 0, 0, "ALREADY_ISSUED"}
 end
 
 -- 2. 발급 진행 중인지 확인 (중복 요청 방지)
@@ -166,7 +177,7 @@ local pendingTime = redis.call('HGET', KEYS[3], ARGV[1])
 if pendingTime then
     local elapsed = tonumber(ARGV[2]) - tonumber(pendingTime)
     if elapsed < tonumber(ARGV[3]) then
-        return -4  -- 이미 진행 중
+        return {-4, 0, elapsed, "PENDING_IN_PROGRESS"}
     end
     -- 타임아웃된 pending 정리 후 재시도 허용
     redis.call('HDEL', KEYS[3], ARGV[1])
@@ -175,19 +186,29 @@ end
 
 -- 3. 재고 확인
 local stock = redis.call('GET', KEYS[1])
-if stock == false then return -3 end  -- 초기화되지 않음
-if tonumber(stock) <= 0 then return -2 end  -- 재고 소진
+if stock == false then return {-3, 0, 0, "NOT_INITIALIZED"} end
+if tonumber(stock) <= 0 then return {-2, 0, 0, "OUT_OF_STOCK"} end
 
 -- 4. 재고 감소 + PENDING 기록
 local newStock = redis.call('DECR', KEYS[1])
 if newStock < 0 then
     redis.call('INCR', KEYS[1])  -- 롤백
-    return -2
+    return {-2, 0, 0, "OUT_OF_STOCK_RACE"}
 end
 redis.call('HSET', KEYS[3], ARGV[1], ARGV[2])
 
-return 1  -- 성공
+return {1, newStock, 0, "SUCCESS"}
 ```
+
+**반환값 규약**: 스크립트는 `{코드, 남은재고, 경과시간, 메시지}` 형태의 배열을 반환한다. 이를 통해 클라이언트에게 상세한 정보를 전달하고, 디버깅을 용이하게 한다.
+
+| 코드 | 의미 | 추가 정보 |
+|:----|:----|:---------|
+| 1 | 성공 | 남은 재고 |
+| -1 | 이미 발급 완료 | - |
+| -2 | 재고 소진 | - |
+| -3 | 미초기화 | - |
+| -4 | 처리 중 | 경과 시간(ms) |
 
 ### 2.5 상태 전이 다이어그램
 
@@ -230,6 +251,98 @@ public void cleanupStalePending() {
 | `coupon:stock:{couponId}` | String | 남은 재고 수량 | 31일 |
 | `coupon:issued:{couponId}` | Set | 발급 완료된 userId 집합 | 31일 |
 | `coupon:pending:{couponId}` | Hash | 진행 중인 userId:timestamp | 31일 |
+
+### 2.8 PENDING 타임아웃 설정 검증
+
+PENDING 관련 설정값들 간의 관계가 중요하다. 잘못된 설정은 데이터 불일치를 유발할 수 있다.
+
+```
+timeoutMs < cleanupTimeoutMs < cleanupIntervalMs (권장)
+
+[요청 시작] -------- timeoutMs --------> [중복 요청 허용]
+                                              |
+            -------- cleanupTimeoutMs ------> [스케줄러 정리 대상]
+```
+
+| 설정값 | 기본값 | 용도 |
+|:------|:------|:----|
+| `timeoutMs` | 30초 | 중복 요청 차단 기간 |
+| `cleanupTimeoutMs` | 60초 | 스케줄러 정리 대상 기준 |
+| `cleanupIntervalMs` | 60초 | 스케줄러 실행 주기 |
+
+**설정값 검증 로직**: 애플리케이션 시작 시 `@PostConstruct`를 통해 설정값 간의 관계를 검증한다.
+
+```java
+@PostConstruct
+public void validate() {
+    if (cleanupTimeoutMs <= timeoutMs) {
+        throw new IllegalStateException(String.format(
+            "cleanupTimeoutMs(%d)는 timeoutMs(%d)보다 커야 합니다. " +
+            "그렇지 않으면 정상적인 트랜잭션도 스케줄러에 의해 정리될 수 있습니다.",
+            cleanupTimeoutMs, timeoutMs));
+    }
+
+    if (cleanupTimeoutMs < timeoutMs * 2) {
+        log.warn("cleanupTimeoutMs가 timeoutMs의 2배 미만입니다. " +
+                 "네트워크 지연 등으로 정상 트랜잭션이 정리될 수 있습니다.");
+    }
+}
+```
+
+### 2.9 Circuit Breaker 패턴 적용
+
+Redis 장애 시 전체 쿠폰 발급이 중단되는 문제를 해결하기 위해 **Resilience4j Circuit Breaker**를 도입하였다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED: 정상 상태
+    CLOSED --> OPEN: 실패율 50% 초과
+    OPEN --> HALF_OPEN: 30초 경과
+    HALF_OPEN --> CLOSED: 테스트 성공
+    HALF_OPEN --> OPEN: 테스트 실패
+```
+
+**Circuit Breaker 상태**:
+- **CLOSED**: 정상 상태, 모든 요청 통과
+- **OPEN**: 장애 감지됨, 모든 요청 즉시 거부 (Fail-Fast)
+- **HALF_OPEN**: 복구 테스트 중, 일부 요청만 허용
+
+```java
+@Primary
+@Component
+public class ResilientCouponIssueManager implements CouponIssueManager {
+
+    private final RedisCouponIssueManager delegate;
+    private final CircuitBreaker circuitBreaker;
+
+    @Override
+    public CouponIssueResult tryIssue(Long couponId, Long userId) {
+        try {
+            return circuitBreaker.executeSupplier(() -> {
+                CouponIssueResult result = delegate.tryIssue(couponId, userId);
+                if (result == CouponIssueResult.ISSUE_FAILED) {
+                    throw new RedisOperationException("Redis 작업 실패");
+                }
+                return result;
+            });
+        } catch (CallNotPermittedException e) {
+            // Circuit Breaker가 OPEN 상태 → 빠른 실패 반환
+            return CouponIssueResult.LOCK_ACQUISITION_FAILED;
+        }
+    }
+}
+```
+
+**설정값** (`application.properties`):
+
+```properties
+resilience4j.circuitbreaker.instances.redisCouponIssue.sliding-window-size=10
+resilience4j.circuitbreaker.instances.redisCouponIssue.failure-rate-threshold=50
+resilience4j.circuitbreaker.instances.redisCouponIssue.wait-duration-in-open-state=30s
+resilience4j.circuitbreaker.instances.redisCouponIssue.permitted-number-of-calls-in-half-open-state=3
+```
+
+**Fallback 전략**: 현재는 즉시 거부(Fail-Fast) 전략을 사용한다. 향후 DB 직접 조회나 Queue 저장 등으로 확장할 수 있다.
 
 ---
 
@@ -311,9 +424,9 @@ Race Condition 우려 없이 동시성 처리가 가능해졌다. Lock 없이도
 개선: OrderService → Kafka → Consumer
 ```
 
-**2. Redis 단일 장애점 (SPOF)**
+**2. Redis 단일 장애점 (SPOF) → Circuit Breaker로 부분 해결**
 
-Redis 장애 시 쿠폰 발급 전체가 중단된다. Redis Cluster나 Sentinel 구성, 또는 Circuit Breaker 패턴을 적용하여 DB Fallback을 구현하는 것이 필요하다.
+Redis 장애 시 쿠폰 발급 전체가 중단되는 문제가 있었다. 이를 해결하기 위해 **Resilience4j Circuit Breaker 패턴**을 적용하였다 (2.9절 참조). 현재는 Fail-Fast 전략으로 빠른 실패를 반환하며, 향후 Redis Cluster/Sentinel 구성이나 DB Fallback 전략으로 확장할 수 있다.
 
 **3. 모니터링 부재**
 
@@ -333,7 +446,20 @@ Redis와 DB를 단일 트랜잭션으로 묶을 수 없다. 따라서 실패 시
 
 **2. Lua 스크립트는 강력하지만 디버깅이 어렵다**
 
-로직 오류가 발생해도 원인 파악이 쉽지 않았다. 반환값 규약을 명확히 정의하고, 단위 테스트를 충분히 작성하는 것이 중요하다.
+로직 오류가 발생해도 원인 파악이 쉽지 않았다. 이를 해결하기 위해 **반환값을 배열 형태로 확장**하여 `{코드, 남은재고, 경과시간, 메시지}`를 반환하도록 개선하였다. 이를 통해 운영 환경에서도 상세한 디버깅 정보를 확보할 수 있게 되었다.
+
+```java
+// 반환값 파싱 예시
+private record ScriptResult(Long code, int remainingStock, long elapsedMs, String message) {}
+
+private ScriptResult parseScriptResult(List<Object> result) {
+    Long code = ((Number) result.get(0)).longValue();
+    int remainingStock = ((Number) result.get(1)).intValue();
+    long elapsedMs = ((Number) result.get(2)).longValue();
+    String message = String.valueOf(result.get(3));
+    return new ScriptResult(code, remainingStock, elapsedMs, message);
+}
+```
 
 **3. 비동기 처리 시 실패 전략을 선제적으로 수립해야 한다**
 
