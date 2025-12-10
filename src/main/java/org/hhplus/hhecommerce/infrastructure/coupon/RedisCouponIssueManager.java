@@ -31,10 +31,6 @@ public class RedisCouponIssueManager implements CouponIssueManager {
     private static final int INIT_WAIT_MAX_RETRIES = 50;
     private static final long INIT_WAIT_INTERVAL_MS = 100;
 
-    /**
-     * Lua 스크립트 결과 코드.
-     * 음수는 실패, 양수는 성공을 나타냅니다.
-     */
     private static final Long RESULT_SUCCESS = 1L;
     private static final Long RESULT_ALREADY_ISSUED = -1L;
     private static final Long RESULT_OUT_OF_STOCK = -2L;
@@ -62,18 +58,6 @@ public class RedisCouponIssueManager implements CouponIssueManager {
         this.rollbackScript = createRollbackScript();
     }
 
-    /**
-     * 쿠폰 발급 Lua 스크립트.
-     *
-     * <p>반환값: {코드, 추가정보1, 추가정보2, 메시지}</p>
-     * <ul>
-     *   <li>성공: {1, 남은재고, 0, "SUCCESS"}</li>
-     *   <li>이미 발급: {-1, 0, 0, "ALREADY_ISSUED"}</li>
-     *   <li>재고 소진: {-2, 0, 0, "OUT_OF_STOCK"}</li>
-     *   <li>미초기화: {-3, 0, 0, "NOT_INITIALIZED"}</li>
-     *   <li>처리 중: {-4, 0, 경과시간ms, "PENDING_IN_PROGRESS"}</li>
-     * </ul>
-     */
     private DefaultRedisScript<List> createIssueScript() {
         String script = """
             -- KEYS[1]: stock key, KEYS[2]: issued set, KEYS[3]: pending hash
@@ -209,9 +193,6 @@ public class RedisCouponIssueManager implements CouponIssueManager {
         }
     }
 
-    /**
-     * Lua 스크립트 결과를 파싱합니다.
-     */
     private ScriptResult parseScriptResult(List<Object> result) {
         Long code = ((Number) result.get(0)).longValue();
         int remainingStock = result.size() > 1 ? ((Number) result.get(1)).intValue() : -1;
@@ -220,9 +201,6 @@ public class RedisCouponIssueManager implements CouponIssueManager {
         return new ScriptResult(code, remainingStock, elapsedMs, message);
     }
 
-    /**
-     * Lua 스크립트 결과를 담는 record.
-     */
     private record ScriptResult(Long code, int remainingStock, long elapsedMs, String message) {}
 
     @Override
@@ -237,16 +215,13 @@ public class RedisCouponIssueManager implements CouponIssueManager {
             if (result != null && result == 1L) {
                 log.info("Confirmed coupon {} for user {}", couponId, userId);
             } else {
-                // pending에 없음 → issued 상태 확인 (멱등성 보장)
                 Boolean alreadyIssued = redisTemplate.opsForSet()
                         .isMember(issuedKey, userId.toString());
 
                 if (Boolean.TRUE.equals(alreadyIssued)) {
                     log.info("Already confirmed coupon {} for user {} (idempotent)", couponId, userId);
                 } else {
-                    // issued에도 없음 → 강제 추가 (DB에는 저장됐으므로 복구)
                     redisTemplate.opsForSet().add(issuedKey, userId.toString());
-                    // TTL이 없을 수 있으므로 설정 (이미 있으면 갱신)
                     redisTemplate.expire(issuedKey, DEFAULT_TTL);
                     log.warn("Force confirmed coupon {} for user {} (recovery)", couponId, userId);
                 }
@@ -365,10 +340,6 @@ public class RedisCouponIssueManager implements CouponIssueManager {
         }
     }
 
-    /**
-     * 스크립트 결과를 CouponIssueResult로 변환합니다.
-     * 상세 정보를 로그에 포함하여 디버깅을 용이하게 합니다.
-     */
     private CouponIssueResult mapResult(ScriptResult scriptResult, Long couponId, Long userId) {
         Long code = scriptResult.code();
         String message = scriptResult.message();
