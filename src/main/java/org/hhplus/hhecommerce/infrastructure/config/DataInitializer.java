@@ -2,7 +2,7 @@ package org.hhplus.hhecommerce.infrastructure.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hhplus.hhecommerce.domain.point.Point;
+import org.hhplus.hhecommerce.application.user.UserService;
 import org.hhplus.hhecommerce.domain.point.PointRepository;
 import org.hhplus.hhecommerce.domain.product.Product;
 import org.hhplus.hhecommerce.domain.product.ProductOption;
@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
+    private final UserService userService;
     private final UserRepository userRepository;
     private final PointRepository pointRepository;
     private final ProductRepository productRepository;
@@ -39,27 +40,21 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        // 사용자 생성
-        User user1 = userRepository.save(new User("테스트유저1", "user1@test.com"));
-        User user2 = userRepository.save(new User("테스트유저2", "user2@test.com"));
-        User user3 = userRepository.save(new User("테스트유저3", "user3@test.com"));
-        log.info("사용자 생성: 3명");
+        // 사용자 생성 (UserService를 통해 포인트도 자동 생성됨)
+        User user1 = userService.createUser("테스트유저1", "user1@test.com");
+        User user2 = userService.createUser("테스트유저2", "user2@test.com");
+        User user3 = userService.createUser("테스트유저3", "user3@test.com");
+        log.info("사용자 생성: 3명 (포인트 자동 생성됨)");
 
-        // 포인트 생성
-        Point point1 = new Point(user1.getId());
-        point1.charge(100000);
-        pointRepository.save(point1);
-        log.info("User1 포인트 생성: {}P", point1.getAmount());
+        // 초기 포인트 충전
+        pointRepository.chargePoint(user1.getId(), 100000);
+        log.info("User1 포인트 충전: 100000P");
 
-        Point point2 = new Point(user2.getId());
-        point2.charge(50000);
-        pointRepository.save(point2);
-        log.info("User2 포인트 생성: {}P", point2.getAmount());
+        pointRepository.chargePoint(user2.getId(), 50000);
+        log.info("User2 포인트 충전: 50000P");
 
-        Point point3 = new Point(user3.getId());
-        point3.charge(80000);
-        pointRepository.save(point3);
-        log.info("User3 포인트 생성: {}P", point3.getAmount());
+        pointRepository.chargePoint(user3.getId(), 80000);
+        log.info("User3 포인트 충전: 80000P");
 
         // 상품 생성
         Product product1 = productRepository.save(new Product("노트북", "고성능 노트북", "전자기기"));
