@@ -4,12 +4,17 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderRequest;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderResponse;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponException;
+import org.hhplus.hhecommerce.domain.order.Order;
+import org.hhplus.hhecommerce.domain.order.OrderItem;
 import org.hhplus.hhecommerce.domain.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.order.OrderStatus;
 import org.hhplus.hhecommerce.domain.order.exception.OrderErrorCode;
 import org.hhplus.hhecommerce.domain.order.exception.OrderException;
 import org.hhplus.hhecommerce.domain.point.exception.PointErrorCode;
 import org.hhplus.hhecommerce.domain.point.exception.PointException;
+import org.hhplus.hhecommerce.domain.product.Product;
+import org.hhplus.hhecommerce.domain.product.ProductOption;
+import org.hhplus.hhecommerce.domain.product.ProductRepository;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +26,7 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.*;
@@ -39,6 +45,9 @@ class CreateOrderUseCaseTest {
     private OrderRepository orderRepository;
 
     @Mock
+    private ProductRepository productRepository;
+
+    @Mock
     private RLock rLock;
 
     private CreateOrderUseCase createOrderUseCase;
@@ -49,6 +58,7 @@ class CreateOrderUseCaseTest {
                 redissonClient,
                 orderTransactionService,
                 orderRepository,
+                productRepository,
                 new SimpleMeterRegistry()
         );
 
@@ -59,19 +69,33 @@ class CreateOrderUseCaseTest {
         lenient().when(orderRepository.existsByUserIdAndStatus(anyLong(), any(OrderStatus.class))).thenReturn(false);
     }
 
+    private OrderProcessResult createMockOrderProcessResult(Long userId, int totalAmount, int discountAmount) {
+        Order order = mock(Order.class);
+        when(order.getId()).thenReturn(1L);
+        when(order.getStatus()).thenReturn(OrderStatus.PENDING);
+        when(order.getTotalAmount()).thenReturn(totalAmount);
+        when(order.getDiscountAmount()).thenReturn(discountAmount);
+        when(order.getFinalAmount()).thenReturn(totalAmount - discountAmount);
+        when(order.getOrderedAt()).thenReturn(null);
+
+        return new OrderProcessResult(order, List.of(), Map.of());
+    }
+
+    private void setupProductRepository() {
+        lenient().when(productRepository.findAllById(anyList())).thenReturn(List.of());
+    }
+
     @Test
     @DisplayName("정상적으로 주문을 생성할 수 있다")
     void 정상적으로_주문을_생성할_수_있다() {
         // Given
         Long userId = 1L;
         CreateOrderRequest request = new CreateOrderRequest(null);
-        CreateOrderResponse expectedResponse = new CreateOrderResponse(
-                1L, userId, "PENDING", 100000, 0, 100000,
-                List.of(), null, "주문이 완료되었습니다"
-        );
+        OrderProcessResult processResult = createMockOrderProcessResult(userId, 100000, 0);
 
         when(orderTransactionService.executeOrderLogic(userId, request))
-                .thenReturn(expectedResponse);
+                .thenReturn(processResult);
+        setupProductRepository();
 
         // When
         CreateOrderResponse response = createOrderUseCase.execute(userId, request);
@@ -134,13 +158,11 @@ class CreateOrderUseCaseTest {
         // Given
         Long userId = 1L;
         CreateOrderRequest request = new CreateOrderRequest(null);
-        CreateOrderResponse expectedResponse = new CreateOrderResponse(
-                1L, userId, "PENDING", 60000, 0, 60000,
-                List.of(), null, "주문이 완료되었습니다"
-        );
+        OrderProcessResult processResult = createMockOrderProcessResult(userId, 60000, 0);
 
         when(orderTransactionService.executeOrderLogic(userId, request))
-                .thenReturn(expectedResponse);
+                .thenReturn(processResult);
+        setupProductRepository();
 
         // When
         createOrderUseCase.execute(userId, request);
@@ -155,13 +177,11 @@ class CreateOrderUseCaseTest {
         // Given
         Long userId = 1L;
         CreateOrderRequest request = new CreateOrderRequest(null);
-        CreateOrderResponse expectedResponse = new CreateOrderResponse(
-                1L, userId, "PENDING", 100000, 0, 100000,
-                List.of(), null, "주문이 완료되었습니다"
-        );
+        OrderProcessResult processResult = createMockOrderProcessResult(userId, 100000, 0);
 
         when(orderTransactionService.executeOrderLogic(userId, request))
-                .thenReturn(expectedResponse);
+                .thenReturn(processResult);
+        setupProductRepository();
 
         // When
         createOrderUseCase.execute(userId, request);
@@ -176,13 +196,11 @@ class CreateOrderUseCaseTest {
         // Given
         Long userId = 1L;
         CreateOrderRequest request = new CreateOrderRequest(1L);
-        CreateOrderResponse expectedResponse = new CreateOrderResponse(
-                1L, userId, "PENDING", 100000, 10000, 90000,
-                List.of(), null, "주문이 완료되었습니다"
-        );
+        OrderProcessResult processResult = createMockOrderProcessResult(userId, 100000, 10000);
 
         when(orderTransactionService.executeOrderLogic(userId, request))
-                .thenReturn(expectedResponse);
+                .thenReturn(processResult);
+        setupProductRepository();
 
         // When
         CreateOrderResponse response = createOrderUseCase.execute(userId, request);

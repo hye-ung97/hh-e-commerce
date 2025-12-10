@@ -1,6 +1,5 @@
 package org.hhplus.hhecommerce.infrastructure.ranking;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hhplus.hhecommerce.domain.ranking.RankingEntry;
 import org.hhplus.hhecommerce.domain.ranking.RankingRepository;
@@ -42,10 +41,6 @@ public class RedisRankingRepository implements RankingRepository {
         this.incrementScoreScript = createIncrementScoreScript();
     }
 
-    /**
-     * 점수 증가, 타임스탬프 저장, TTL 설정을 원자적으로 수행하는 Lua 스크립트.
-     * Sorted Set과 Hash의 생명주기를 동기화하여 메모리 누수를 방지합니다.
-     */
     private DefaultRedisScript<Long> createIncrementScoreScript() {
         String script = """
             -- KEYS[1]: ranking sorted set key

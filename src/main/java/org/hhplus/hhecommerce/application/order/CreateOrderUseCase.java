@@ -6,15 +6,26 @@ import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderRequest;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderResponse;
+import org.hhplus.hhecommerce.domain.order.Order;
+import org.hhplus.hhecommerce.domain.order.OrderItem;
 import org.hhplus.hhecommerce.domain.order.OrderRepository;
 import org.hhplus.hhecommerce.domain.order.OrderStatus;
 import org.hhplus.hhecommerce.domain.order.exception.OrderErrorCode;
 import org.hhplus.hhecommerce.domain.order.exception.OrderException;
+import org.hhplus.hhecommerce.domain.product.Product;
+import org.hhplus.hhecommerce.domain.product.ProductOption;
+import org.hhplus.hhecommerce.domain.product.ProductRepository;
+import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
+import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 
 @Slf4j
 @Service
@@ -23,6 +34,7 @@ public class CreateOrderUseCase {
     private final RedissonClient redissonClient;
     private final OrderTransactionService orderTransactionService;
     private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
     private final Timer lockWaitTimer;
     private final Timer lockHoldTimer;
     private final Counter lockAcquiredCounter;
@@ -35,10 +47,12 @@ public class CreateOrderUseCase {
     public CreateOrderUseCase(RedissonClient redissonClient,
                                OrderTransactionService orderTransactionService,
                                OrderRepository orderRepository,
+                               ProductRepository productRepository,
                                MeterRegistry meterRegistry) {
         this.redissonClient = redissonClient;
         this.orderTransactionService = orderTransactionService;
         this.orderRepository = orderRepository;
+        this.productRepository = productRepository;
 
         this.lockWaitTimer = Timer.builder("order.lock.wait.time")
                 .description("주문 락 획득 대기 시간")
@@ -95,7 +109,9 @@ public class CreateOrderUseCase {
                     throw new OrderException(OrderErrorCode.ORDER_IN_PROGRESS);
                 }
 
-                return orderTransactionService.executeOrderLogic(userId, request);
+                OrderProcessResult processResult = orderTransactionService.executeOrderLogic(userId, request);
+
+                return buildOrderResponse(userId, processResult);
             } finally {
                 long holdDuration = System.nanoTime() - holdStartTime;
                 lockHoldTimer.record(holdDuration, TimeUnit.NANOSECONDS);
@@ -113,5 +129,53 @@ public class CreateOrderUseCase {
                 log.debug("Lock released for user: {}", userId);
             }
         }
+    }
+
+    private CreateOrderResponse buildOrderResponse(Long userId, OrderProcessResult processResult) {
+        Order order = processResult.order();
+        List<OrderItem> orderItems = processResult.orderItems();
+        Map<Long, ProductOption> productOptionMap = processResult.productOptionMap();
+
+        List<Long> productIds = productOptionMap.values().stream()
+                .map(ProductOption::getProductId)
+                .distinct()
+                .toList();
+
+        Map<Long, Product> productMap = productRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, product -> product));
+
+        if (productMap.size() != productIds.size()) {
+            List<Long> missingIds = productIds.stream()
+                    .filter(id -> !productMap.containsKey(id))
+                    .toList();
+            log.error("상품 조회 실패 - 존재하지 않는 상품: {}", missingIds);
+            throw new ProductException(ProductErrorCode.PRODUCT_NOT_FOUND);
+        }
+
+        List<CreateOrderResponse.OrderItemInfo> itemInfos = orderItems.stream()
+                .map(item -> {
+                    ProductOption option = productOptionMap.get(item.getProductOptionId());
+                    Product product = productMap.get(option.getProductId());
+                    return new CreateOrderResponse.OrderItemInfo(
+                            product.getName(),
+                            option.getOptionName(),
+                            item.getUnitPrice(),
+                            item.getQuantity(),
+                            item.getSubTotal()
+                    );
+                })
+                .collect(Collectors.toList());
+
+        return new CreateOrderResponse(
+                order.getId(),
+                userId,
+                order.getStatus().name(),
+                order.getTotalAmount(),
+                order.getDiscountAmount(),
+                order.getFinalAmount(),
+                itemInfos,
+                order.getOrderedAt(),
+                "주문이 완료되었습니다"
+        );
     }
 }
