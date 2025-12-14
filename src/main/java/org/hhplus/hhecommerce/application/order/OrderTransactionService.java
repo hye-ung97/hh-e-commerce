@@ -31,7 +31,7 @@ import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.hhplus.hhecommerce.domain.user.User;
 import org.hhplus.hhecommerce.domain.user.UserRepository;
-import org.springframework.context.ApplicationEventPublisher;
+import org.hhplus.hhecommerce.domain.common.DomainEventPublisher;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -58,7 +58,7 @@ public class OrderTransactionService {
     private final ProductOptionRepository productOptionRepository;
     private final ProductRepository productRepository;
     private final CouponRepository couponRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     @Retryable(
         retryFor = OptimisticLockException.class,
@@ -195,13 +195,13 @@ public class OrderTransactionService {
                 stockResult.orderItems(), stockResult.productOptionMap());
 
         if (!productQuantityMap.isEmpty()) {
-            eventPublisher.publishEvent(new OrderCompletedEvent(order.getId(), productQuantityMap));
+            eventPublisher.publish(new OrderCompletedEvent(order.getId(), productQuantityMap));
             log.debug("주문 완료 이벤트 발행 - orderId: {}, products: {}", order.getId(), productQuantityMap.size());
         }
 
         PaymentCompletedEvent paymentEvent = buildPaymentCompletedEvent(
                 order, user, stockResult, productQuantityMap);
-        eventPublisher.publishEvent(paymentEvent);
+        eventPublisher.publish(paymentEvent);
         log.debug("결제 완료 이벤트 발행 - orderId: {}, items: {}",
                 order.getId(), paymentEvent.orderItems().size());
     }

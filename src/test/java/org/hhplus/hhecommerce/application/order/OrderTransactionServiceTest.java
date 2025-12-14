@@ -23,6 +23,7 @@ import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.hhplus.hhecommerce.domain.user.User;
 import org.hhplus.hhecommerce.domain.user.UserRepository;
+import org.hhplus.hhecommerce.domain.common.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,7 +32,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -74,7 +74,7 @@ class OrderTransactionServiceTest {
     private CouponRepository couponRepository;
 
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private DomainEventPublisher eventPublisher;
 
     @InjectMocks
     private OrderTransactionService orderTransactionService;
@@ -132,7 +132,7 @@ class OrderTransactionServiceTest {
             assertThat(result.order()).isNotNull();
             assertThat(result.orderItems()).hasSize(1);
             verify(cartRepository).deleteAllByUserId(userId);
-            verify(eventPublisher, atLeast(2)).publishEvent(any(Object.class));
+            verify(eventPublisher, atLeast(2)).publish(any(Object.class));
         }
 
         @Test

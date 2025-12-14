@@ -1,18 +1,21 @@
 package org.hhplus.hhecommerce.application.order;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hhplus.hhecommerce.application.ranking.UpdateProductRankingUseCase;
+import org.hhplus.hhecommerce.domain.common.RejectedAsyncTaskRepository;
 import org.hhplus.hhecommerce.domain.order.OrderCompletedEvent;
 import org.hhplus.hhecommerce.infrastructure.cache.ProductCacheManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -28,8 +31,27 @@ class OrderEventListenerTest {
     @Mock
     private ProductCacheManager productCacheManager;
 
-    @InjectMocks
+    @Mock
+    private RejectedAsyncTaskRepository rejectedAsyncTaskRepository;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
     private OrderEventListener orderEventListener;
+
+    @BeforeEach
+    void setUp() {
+        // 동기 실행하는 Executor 사용 (테스트 용이성)
+        Executor syncExecutor = Runnable::run;
+
+        orderEventListener = new OrderEventListener(
+                updateProductRankingUseCase,
+                productCacheManager,
+                syncExecutor,
+                rejectedAsyncTaskRepository,
+                objectMapper
+        );
+    }
 
     @Nested
     @DisplayName("handleOrderCompleted 테스트")

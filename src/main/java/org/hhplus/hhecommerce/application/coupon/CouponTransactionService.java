@@ -2,6 +2,7 @@ package org.hhplus.hhecommerce.application.coupon;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hhplus.hhecommerce.domain.common.DomainEventPublisher;
 import org.hhplus.hhecommerce.domain.coupon.Coupon;
 import org.hhplus.hhecommerce.domain.coupon.CouponIssueManager;
 import org.hhplus.hhecommerce.domain.coupon.CouponIssuedEvent;
@@ -10,7 +11,6 @@ import org.hhplus.hhecommerce.domain.coupon.UserCoupon;
 import org.hhplus.hhecommerce.domain.coupon.UserCouponRepository;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponErrorCode;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponException;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +24,7 @@ public class CouponTransactionService {
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
     private final CouponIssueManager couponIssueManager;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     @Transactional
     public CouponSaveResult saveUserCoupon(Long userId, Long couponId) {
@@ -44,7 +44,7 @@ public class CouponTransactionService {
         UserCoupon userCoupon = new UserCoupon(userId, couponId, LocalDateTime.now().plusDays(30));
         userCouponRepository.save(userCoupon);
 
-        eventPublisher.publishEvent(new CouponIssuedEvent(couponId, userId));
+        eventPublisher.publish(new CouponIssuedEvent(couponId, userId));
 
         log.info("UserCoupon created for user {} and coupon {}", userId, couponId);
 
