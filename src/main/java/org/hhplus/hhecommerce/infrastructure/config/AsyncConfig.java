@@ -9,6 +9,8 @@ import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
 @Configuration
@@ -27,20 +29,18 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setThreadNamePrefix(asyncProperties.getThreadNamePrefix());
         executor.setWaitForTasksToCompleteOnShutdown(asyncProperties.isWaitForTasksToCompleteOnShutdown());
         executor.setAwaitTerminationSeconds(asyncProperties.getAwaitTerminationSeconds());
-        executor.setRejectedExecutionHandler((r, e) -> {
-            log.warn("비동기 작업 거부됨 - 호출 스레드에서 직접 실행합니다. " +
-                    "activeCount={}, poolSize={}/{}, queueSize={}/{}",
-                    e.getActiveCount(),
-                    e.getPoolSize(),
-                    e.getMaximumPoolSize(),
-                    e.getQueue().size(),
-                    asyncProperties.getQueueCapacity());
-
-            if (!e.isShutdown()) {
-                r.run();
-            } else {
-                log.error("Executor가 shutdown 상태 - 작업을 실행할 수 없습니다. task={}",
-                        r.getClass().getSimpleName());
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy() {
+            @Override
+            public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
+                log.error("비동기 작업 거부됨 - 스레드풀 포화 상태. " +
+                        "activeCount={}, poolSize={}/{}, queueSize={}/{}. " +
+                        "이벤트 리스너에서 DLQ에 저장됩니다.",
+                        e.getActiveCount(),
+                        e.getPoolSize(),
+                        e.getMaximumPoolSize(),
+                        e.getQueue().size(),
+                        asyncProperties.getQueueCapacity());
+                throw new RejectedExecutionException("Async task rejected - thread pool saturated");
             }
         });
         executor.initialize();

@@ -1,8 +1,10 @@
 package org.hhplus.hhecommerce.infrastructure.external;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.hhplus.hhecommerce.domain.common.RejectedAsyncTaskRepository;
 import org.hhplus.hhecommerce.domain.order.PaymentCompletedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +29,12 @@ class ResilientNotificationClientTest {
     @Mock
     private NotificationClient delegate;
 
+    @Mock
+    private RejectedAsyncTaskRepository rejectedAsyncTaskRepository;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
     private CircuitBreakerRegistry circuitBreakerRegistry;
     private ResilientNotificationClient resilientClient;
 
@@ -44,7 +52,9 @@ class ResilientNotificationClientTest {
 
         resilientClient = new ResilientNotificationClient(
                 delegate,
-                circuitBreakerRegistry
+                circuitBreakerRegistry,
+                rejectedAsyncTaskRepository,
+                objectMapper
         );
 
         testEvent = createTestEvent();
@@ -84,28 +94,32 @@ class ResilientNotificationClientTest {
 
         @Test
         @DisplayName("delegate 실패 시 예외가 전파되지 않는다")
-        void shouldNotPropagateExceptionWhenDelegateFails() {
+        void shouldNotPropagateExceptionWhenDelegateFails() throws Exception {
             // given
             doThrow(new RuntimeException("알림 발송 실패")).when(delegate).sendOrderConfirmation(any());
+            when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
             // when & then - 예외가 발생하지 않음
             resilientClient.sendOrderConfirmation(testEvent);
 
             verify(delegate).sendOrderConfirmation(testEvent);
+            verify(rejectedAsyncTaskRepository).save(any());
         }
 
         @Test
         @DisplayName("Circuit Breaker가 OPEN 상태면 delegate를 호출하지 않는다")
-        void shouldNotCallDelegateWhenCircuitBreakerIsOpen() {
+        void shouldNotCallDelegateWhenCircuitBreakerIsOpen() throws Exception {
             // given
             CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("notification");
             circuitBreaker.transitionToOpenState();
+            when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
             // when
             resilientClient.sendOrderConfirmation(testEvent);
 
             // then
             verify(delegate, never()).sendOrderConfirmation(any());
+            verify(rejectedAsyncTaskRepository).save(any());
         }
 
         @Test
@@ -180,9 +194,10 @@ class ResilientNotificationClientTest {
 
         @Test
         @DisplayName("연속 실패 후에도 예외가 전파되지 않는다")
-        void shouldNotPropagateExceptionAfterConsecutiveFailures() {
+        void shouldNotPropagateExceptionAfterConsecutiveFailures() throws Exception {
             // given
             doThrow(new RuntimeException("알림 발송 실패")).when(delegate).sendOrderConfirmation(any());
+            when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
             // when & then - 여러 번 호출해도 예외가 전파되지 않음
             for (int i = 0; i < 10; i++) {

@@ -872,3 +872,398 @@ public Order createOrder(CreateOrderCommand command) {
     return order;
 }
 ```
+
+---
+
+## 9. SAGA 비동기 처리 및 응답 최적화
+
+### 9.1 동기식 Orchestration의 문제점
+
+현재 설계된 Orchestration SAGA는 모든 단계를 동기식으로 처리한다. 이는 다음과 같은 문제를 야기할 수 있다.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant OSO as Order Saga Orchestrator
+    participant Services as Domain Services (5개)
+
+    Client->>OSO: 주문 요청
+    Note over OSO: 5개 서비스 순차 호출 (각 100~500ms)
+    OSO->>Services: Product → Coupon → Order → Point → Cart
+    Note over OSO: 총 500ms ~ 2.5초 소요
+
+    alt 실패 시
+        Note over OSO: 보상 트랜잭션 실행 (추가 500ms ~ 2초)
+        OSO->>Services: 역순 보상 처리
+    end
+
+    OSO-->>Client: 응답 (최악의 경우 4초 이상)
+```
+
+**핵심 문제점:**
+
+| 문제 | 설명 | 영향 |
+|:----|:----|:----|
+| **긴 응답 시간** | 5개 서비스 순차 호출 + 실패 시 보상까지 완료 후 응답 | 사용자 경험 저하 |
+| **SPOF (Single Point of Failure)** | 모든 요청이 Orchestrator에 집중 | 장애 시 전체 시스템 마비 |
+| **커넥션 풀 고갈** | 장시간 대기하는 요청들이 커넥션 점유 | 시스템 처리량 급감 |
+| **타임아웃 리스크** | 처리 시간이 길어져 클라이언트 타임아웃 발생 | 중복 요청, 데이터 불일치 |
+
+### 9.2 해결책: 비동기 SAGA + 즉시 응답 패턴
+
+사용자에게 "주문 접수됨(PENDING)"을 즉시 반환하고, 실제 SAGA 처리는 비동기로 진행한다.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as Order API
+    participant Queue as Message Queue
+    participant Saga as Saga Orchestrator
+    participant Services as Domain Services
+
+    Client->>API: 주문 요청
+    API->>API: 주문 생성 (PENDING)
+    API->>Queue: SAGA 시작 이벤트 발행
+    API-->>Client: 즉시 응답 (orderId, status=PENDING, 50ms 이내)
+
+    Note over Client: 폴링 또는 WebSocket으로 상태 확인
+
+    Queue-->>Saga: SAGA 처리 시작
+    Saga->>Services: 각 서비스 호출
+    Services-->>Saga: 결과
+    Saga->>API: 주문 상태 업데이트 (CONFIRMED/FAILED)
+
+    Client->>API: 상태 조회 (폴링)
+    API-->>Client: 최종 결과
+```
+
+**구현 예시:**
+
+```java
+// 주문 API - 즉시 응답
+@RestController
+@RequiredArgsConstructor
+public class OrderController {
+
+    private final OrderService orderService;
+    private final DomainEventPublisher eventPublisher;
+
+    @PostMapping("/orders")
+    public ResponseEntity<OrderAcceptedResponse> createOrder(
+            @RequestBody CreateOrderRequest request) {
+
+        // 1. 기본 검증 (동기, 빠른 처리)
+        orderService.validateOrderRequest(request);
+
+        // 2. 주문을 PENDING 상태로 즉시 생성
+        Order order = orderService.createPendingOrder(request);
+
+        // 3. SAGA 시작 이벤트 발행 (비동기 처리 트리거)
+        eventPublisher.publish(new OrderSagaStartEvent(
+            order.getId(),
+            request.getUserId(),
+            request.getItems(),
+            request.getUserCouponId()
+        ));
+
+        // 4. 즉시 응답 (50ms 이내)
+        return ResponseEntity.accepted()
+            .body(new OrderAcceptedResponse(
+                order.getId(),
+                OrderStatus.PENDING,
+                "주문이 접수되었습니다. 처리 중입니다."
+            ));
+    }
+
+    @GetMapping("/orders/{orderId}/status")
+    public OrderStatusResponse getOrderStatus(@PathVariable Long orderId) {
+        return orderService.getOrderStatus(orderId);
+    }
+}
+
+// 비동기 SAGA Orchestrator
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class AsyncOrderSagaOrchestrator {
+
+    private final SagaStateRepository sagaStateRepository;
+    private final ProductServiceClient productClient;
+    private final CouponServiceClient couponClient;
+    private final PointServiceClient pointClient;
+    private final CartServiceClient cartClient;
+    private final OrderService orderService;
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async("sagaExecutor")
+    public void handleOrderSagaStart(OrderSagaStartEvent event) {
+        String sagaId = UUID.randomUUID().toString();
+        SagaState saga = SagaState.create(sagaId, event);
+
+        try {
+            executeSaga(saga, event);
+            saga.complete();
+            orderService.confirmOrder(event.getOrderId());
+            log.info("SAGA 완료 - orderId: {}, sagaId: {}", event.getOrderId(), sagaId);
+
+        } catch (Exception e) {
+            log.error("SAGA 실패 - orderId: {}, sagaId: {}, error: {}",
+                event.getOrderId(), sagaId, e.getMessage());
+            executeCompensation(saga);
+            orderService.cancelOrder(event.getOrderId(), e.getMessage());
+
+        } finally {
+            sagaStateRepository.save(saga);
+        }
+    }
+
+    private void executeSaga(SagaState saga, OrderSagaStartEvent event) {
+        // Step 1: 재고 차감
+        productClient.reserveStock(event.getItems());
+        saga.stockReserved();
+
+        // Step 2: 쿠폰 사용
+        if (event.getCouponId() != null) {
+            couponClient.useCoupon(event.getCouponId());
+            saga.couponUsed();
+        }
+
+        // Step 3: 포인트 차감
+        pointClient.deductPoint(event.getUserId(), event.getTotalAmount());
+        saga.pointDeducted();
+
+        // Step 4: 장바구니 삭제
+        cartClient.clearCart(event.getUserId());
+        saga.cartCleared();
+    }
+
+    private void executeCompensation(SagaState saga) {
+        // 역순으로 보상 실행 (각 단계는 try-catch로 개별 처리)
+        // ... 보상 로직
+    }
+}
+```
+
+### 9.3 사용자 상태 표현 전략
+
+SAGA의 세부적인 상태를 모두 사용자에게 노출할 필요는 없다. 내부 상태와 사용자 노출 상태를 분리하여 관리한다.
+
+**상태 매핑:**
+
+| 내부 SAGA 상태 | 사용자 노출 상태 | 설명 |
+|:-------------|:--------------|:----|
+| `STARTED` | `PROCESSING` | 주문 처리 시작 |
+| `STOCK_RESERVED` | `PROCESSING` | 재고 확보됨 |
+| `COUPON_USED` | `PROCESSING` | 쿠폰 적용됨 |
+| `ORDER_CREATED` | `PROCESSING` | 주문 생성됨 |
+| `POINT_DEDUCTED` | `PROCESSING` | 결제 완료 |
+| `CART_CLEARED` | `PROCESSING` | 장바구니 정리됨 |
+| `COMPLETED` | `CONFIRMED` | 주문 확정 |
+| `COMPENSATING` | `FAILED` | 주문 실패 (처리 중) |
+| `COMPENSATED` | `FAILED` | 주문 실패 (복구 완료) |
+| `COMPENSATION_FAILED` | `FAILED` | 주문 실패 (수동 조치 필요) |
+
+```java
+@Entity
+public class Order {
+
+    @Enumerated(EnumType.STRING)
+    private SagaState sagaState;  // 내부 상태 (7단계)
+
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;   // 사용자 노출 상태 (3단계)
+
+    // 상태 변환 메서드
+    public UserOrderStatus getUserStatus() {
+        return switch (sagaState) {
+            case STARTED, STOCK_RESERVED, COUPON_USED,
+                 ORDER_CREATED, POINT_DEDUCTED, CART_CLEARED
+                -> UserOrderStatus.PROCESSING;
+            case COMPLETED
+                -> UserOrderStatus.CONFIRMED;
+            case COMPENSATING, COMPENSATED, COMPENSATION_FAILED
+                -> UserOrderStatus.FAILED;
+        };
+    }
+}
+
+// 사용자 응답 DTO
+public record OrderStatusResponse(
+    Long orderId,
+    UserOrderStatus status,        // PROCESSING, CONFIRMED, FAILED
+    String message,
+    LocalDateTime updatedAt
+) {
+    public static OrderStatusResponse of(Order order) {
+        String message = switch (order.getUserStatus()) {
+            case PROCESSING -> "주문을 처리하고 있습니다.";
+            case CONFIRMED -> "주문이 확정되었습니다.";
+            case FAILED -> "주문 처리에 실패했습니다. " + order.getFailureReason();
+        };
+
+        return new OrderStatusResponse(
+            order.getId(),
+            order.getUserStatus(),
+            message,
+            order.getUpdatedAt()
+        );
+    }
+}
+```
+
+### 9.4 Orchestrator SPOF 방지
+
+Orchestrator를 Stateless로 설계하고, SAGA 상태는 DB에 저장하여 어느 인스턴스에서든 처리할 수 있도록 한다.
+
+```mermaid
+graph TB
+    subgraph "Load Balancer"
+        LB[API Gateway / Load Balancer]
+    end
+
+    subgraph "Stateless Orchestrators (수평 확장 가능)"
+        O1[Orchestrator 1]
+        O2[Orchestrator 2]
+        O3[Orchestrator 3]
+    end
+
+    subgraph "Shared Infrastructure"
+        MQ[Message Queue<br/>Kafka / RabbitMQ]
+        DB[(SAGA State DB)]
+    end
+
+    LB --> O1
+    LB --> O2
+    LB --> O3
+
+    O1 <--> MQ
+    O2 <--> MQ
+    O3 <--> MQ
+
+    O1 --> DB
+    O2 --> DB
+    O3 --> DB
+```
+
+**장애 복구 메커니즘:**
+
+```java
+// SAGA 상태 엔티티
+@Entity
+@Table(name = "saga_state")
+public class SagaState {
+
+    @Id
+    private String sagaId;
+
+    private Long orderId;
+
+    @Enumerated(EnumType.STRING)
+    private SagaStep currentStep;
+
+    @Enumerated(EnumType.STRING)
+    private SagaStatus status;  // IN_PROGRESS, COMPLETED, COMPENSATING, FAILED
+
+    private String payload;  // JSON 직렬화된 요청 데이터
+
+    private LocalDateTime startedAt;
+    private LocalDateTime lastUpdatedAt;
+    private String processingInstanceId;  // 처리 중인 Orchestrator 인스턴스
+}
+
+// 고아 SAGA 복구 스케줄러
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class OrphanSagaRecoveryScheduler {
+
+    private final SagaStateRepository sagaStateRepository;
+    private final AsyncOrderSagaOrchestrator orchestrator;
+
+    @Scheduled(fixedDelay = 60000)  // 1분마다
+    public void recoverOrphanSagas() {
+        // 5분 이상 IN_PROGRESS 상태로 멈춘 SAGA 조회
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
+
+        List<SagaState> orphanSagas = sagaStateRepository
+            .findByStatusAndLastUpdatedAtBefore(SagaStatus.IN_PROGRESS, threshold);
+
+        for (SagaState saga : orphanSagas) {
+            log.warn("고아 SAGA 발견 - sagaId: {}, orderId: {}, lastStep: {}",
+                saga.getSagaId(), saga.getOrderId(), saga.getCurrentStep());
+
+            // 보상 트랜잭션 실행
+            orchestrator.executeCompensation(saga);
+        }
+    }
+}
+```
+
+### 9.5 클라이언트 상태 확인 방식
+
+#### Option 1: 폴링 (Polling)
+
+단순하고 구현이 쉬우나, 불필요한 요청이 발생할 수 있다.
+
+```javascript
+// 클라이언트 폴링 예시
+async function waitForOrderConfirmation(orderId) {
+    const maxAttempts = 30;  // 최대 30초
+    const interval = 1000;   // 1초 간격
+
+    for (let i = 0; i < maxAttempts; i++) {
+        const response = await fetch(`/api/orders/${orderId}/status`);
+        const status = await response.json();
+
+        if (status.status === 'CONFIRMED') {
+            return { success: true, order: status };
+        }
+        if (status.status === 'FAILED') {
+            return { success: false, error: status.message };
+        }
+
+        await sleep(interval);
+    }
+
+    return { success: false, error: 'Timeout' };
+}
+```
+
+#### Option 2: WebSocket (실시간 알림)
+
+실시간 상태 업데이트가 가능하나, 연결 관리가 필요하다.
+
+```java
+@Component
+@RequiredArgsConstructor
+public class OrderStatusNotifier {
+
+    private final SimpMessagingTemplate messagingTemplate;
+
+    public void notifyOrderStatusChange(Long orderId, UserOrderStatus status) {
+        messagingTemplate.convertAndSend(
+            "/topic/orders/" + orderId,
+            new OrderStatusUpdate(orderId, status)
+        );
+    }
+}
+```
+
+### 9.6 성능 비교
+
+| 항목 | 동기식 SAGA | 비동기 SAGA + 즉시 응답 |
+|:----|:-----------|:---------------------|
+| **응답 시간** | 500ms ~ 4초 | 50ms 이내 |
+| **처리량 (TPS)** | 낮음 (커넥션 점유) | 높음 (빠른 반환) |
+| **SPOF 리스크** | 높음 | 낮음 (Stateless) |
+| **구현 복잡도** | 낮음 | 중간 |
+| **상태 추적** | 단순 | 추가 인프라 필요 |
+| **사용자 경험** | 대기 시간 길음 | 즉시 피드백 |
+
+### 9.7 권장 구현 전략
+
+1. **1단계 (현재)**: 모놀리식 환경에서 이벤트 기반 비동기 처리 유지
+2. **2단계 (MSA 전환 시)**: 비동기 SAGA + 즉시 응답 패턴 적용
+3. **3단계 (고도화)**: WebSocket 실시간 알림 + Stateless Orchestrator 분산
+
+MSA 전환 시점에 비동기 SAGA 패턴을 적용하면, 사용자 경험을 유지하면서 시스템 안정성을 확보할 수 있다.

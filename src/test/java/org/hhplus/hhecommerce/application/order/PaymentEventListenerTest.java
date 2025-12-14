@@ -1,5 +1,7 @@
 package org.hhplus.hhecommerce.application.order;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hhplus.hhecommerce.domain.common.RejectedAsyncTaskRepository;
 import org.hhplus.hhecommerce.domain.order.PaymentCompletedEvent;
 import org.hhplus.hhecommerce.infrastructure.external.ExternalApiException;
 import org.hhplus.hhecommerce.infrastructure.external.ResilientExternalDataPlatformClient;
@@ -9,13 +11,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -30,23 +32,39 @@ class PaymentEventListenerTest {
     @Mock
     private ResilientNotificationClient notificationClient;
 
-    @InjectMocks
+    @Mock
+    private RejectedAsyncTaskRepository rejectedAsyncTaskRepository;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
     private PaymentEventListener paymentEventListener;
 
     private PaymentCompletedEvent testEvent;
 
     @BeforeEach
     void setUp() {
+        // 동기 실행하는 Executor 사용 (테스트 용이성)
+        Executor syncExecutor = Runnable::run;
+
+        paymentEventListener = new PaymentEventListener(
+                externalDataPlatformClient,
+                notificationClient,
+                syncExecutor,
+                rejectedAsyncTaskRepository,
+                objectMapper
+        );
+
         List<PaymentCompletedEvent.OrderItemInfo> orderItems = List.of(
                 new PaymentCompletedEvent.OrderItemInfo(1L, "테스트 상품", "옵션A", 2, 10000, 20000)
         );
 
         testEvent = PaymentCompletedEvent.of(
-                1L,                          
-                100L,                        
-                "010-1234-5678",          
-                20000,                  
-                2000,                
+                1L,
+                100L,
+                "010-1234-5678",
+                20000,
+                2000,
                 18000,
                 orderItems,
                 Map.of(1L, 2),

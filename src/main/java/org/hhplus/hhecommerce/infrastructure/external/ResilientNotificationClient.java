@@ -1,9 +1,13 @@
 package org.hhplus.hhecommerce.infrastructure.external;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import lombok.extern.slf4j.Slf4j;
+import org.hhplus.hhecommerce.domain.common.RejectedAsyncTask;
+import org.hhplus.hhecommerce.domain.common.RejectedAsyncTaskRepository;
 import org.hhplus.hhecommerce.domain.order.PaymentCompletedEvent;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -13,16 +17,23 @@ import org.springframework.stereotype.Component;
 @Component
 public class ResilientNotificationClient {
 
+    public static final String TASK_TYPE_NOTIFICATION_FAILED = "NOTIFICATION_FAILED";
     private static final String CIRCUIT_BREAKER_NAME = "notification";
 
     private final NotificationClient delegate;
     private final CircuitBreaker circuitBreaker;
+    private final RejectedAsyncTaskRepository rejectedAsyncTaskRepository;
+    private final ObjectMapper objectMapper;
 
     public ResilientNotificationClient(
             NotificationClient delegate,
-            CircuitBreakerRegistry circuitBreakerRegistry) {
+            CircuitBreakerRegistry circuitBreakerRegistry,
+            RejectedAsyncTaskRepository rejectedAsyncTaskRepository,
+            ObjectMapper objectMapper) {
         this.delegate = delegate;
         this.circuitBreaker = circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER_NAME);
+        this.rejectedAsyncTaskRepository = rejectedAsyncTaskRepository;
+        this.objectMapper = objectMapper;
 
         registerEventListeners();
     }
@@ -65,6 +76,22 @@ public class ResilientNotificationClient {
         log.warn("[Notification] Fallback 실행 - orderId: {}, userId: {}, reason: {}",
                 event.orderId(), event.userId(), throwable.getClass().getSimpleName());
 
+        try {
+            String eventPayload = objectMapper.writeValueAsString(event);
+            RejectedAsyncTask failedTask = new RejectedAsyncTask(
+                    TASK_TYPE_NOTIFICATION_FAILED,
+                    eventPayload,
+                    throwable.getMessage()
+            );
+            rejectedAsyncTaskRepository.save(failedTask);
+            log.info("[Notification] 실패 이벤트 DLQ 저장 완료 - orderId: {}", event.orderId());
+        } catch (JsonProcessingException e) {
+            log.error("[Notification] 이벤트 직렬화 실패 - orderId: {}, error: {}",
+                    event.orderId(), e.getMessage());
+        } catch (Exception e) {
+            log.error("[Notification] 실패 이벤트 저장 실패 - orderId: {}, error: {}",
+                    event.orderId(), e.getMessage());
+        }
     }
 
     public CircuitBreakerStatus getCircuitBreakerStatus() {
