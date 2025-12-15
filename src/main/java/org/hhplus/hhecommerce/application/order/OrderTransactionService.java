@@ -31,7 +31,10 @@ import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.hhplus.hhecommerce.domain.user.User;
 import org.hhplus.hhecommerce.domain.user.UserRepository;
-import org.hhplus.hhecommerce.domain.common.DomainEventPublisher;
+import org.hhplus.hhecommerce.domain.common.OutboxEvent;
+import org.hhplus.hhecommerce.domain.common.OutboxEventRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -58,7 +61,8 @@ public class OrderTransactionService {
     private final ProductOptionRepository productOptionRepository;
     private final ProductRepository productRepository;
     private final CouponRepository couponRepository;
-    private final DomainEventPublisher eventPublisher;
+    private final OutboxEventRepository outboxEventRepository;
+    private final ObjectMapper objectMapper;
 
     @Retryable(
         retryFor = OptimisticLockException.class,
@@ -195,15 +199,27 @@ public class OrderTransactionService {
                 stockResult.orderItems(), stockResult.productOptionMap());
 
         if (!productQuantityMap.isEmpty()) {
-            eventPublisher.publish(new OrderCompletedEvent(order.getId(), productQuantityMap));
-            log.debug("주문 완료 이벤트 발행 - orderId: {}, products: {}", order.getId(), productQuantityMap.size());
+            OrderCompletedEvent orderEvent = new OrderCompletedEvent(order.getId(), productQuantityMap);
+            saveToOutbox("Order", order.getId(), "OrderCompletedEvent", orderEvent);
+            log.debug("주문 완료 이벤트 Outbox 저장 - orderId: {}, products: {}", order.getId(), productQuantityMap.size());
         }
 
         PaymentCompletedEvent paymentEvent = buildPaymentCompletedEvent(
                 order, user, stockResult, productQuantityMap);
-        eventPublisher.publish(paymentEvent);
-        log.debug("결제 완료 이벤트 발행 - orderId: {}, items: {}",
+        saveToOutbox("Order", order.getId(), "PaymentCompletedEvent", paymentEvent);
+        log.debug("결제 완료 이벤트 Outbox 저장 - orderId: {}, items: {}",
                 order.getId(), paymentEvent.orderItems().size());
+    }
+
+    private void saveToOutbox(String aggregateType, Long aggregateId, String eventType, Object event) {
+        try {
+            String payload = objectMapper.writeValueAsString(event);
+            OutboxEvent outboxEvent = new OutboxEvent(aggregateType, aggregateId, eventType, payload);
+            outboxEventRepository.save(outboxEvent);
+        } catch (JsonProcessingException e) {
+            log.error("Outbox 이벤트 직렬화 실패 - eventType: {}, aggregateId: {}", eventType, aggregateId, e);
+            throw new RuntimeException("Failed to serialize event for outbox", e);
+        }
     }
 
     private Map<Long, Integer> buildProductQuantityMap(List<OrderItem> orderItems,

@@ -6,6 +6,7 @@ import org.hhplus.hhecommerce.domain.coupon.CouponIssueManager;
 import org.hhplus.hhecommerce.domain.coupon.FailedCouponRollback;
 import org.hhplus.hhecommerce.domain.coupon.FailedCouponRollbackRepository;
 import org.hhplus.hhecommerce.domain.coupon.UserCouponRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -19,20 +20,27 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CouponRollbackRecoveryService {
 
-    private static final int MAX_RETRY_COUNT = 3;
-    private static final int BATCH_SIZE = 100;
     private static final String RECOVERY_EXECUTOR = "BATCH_RECOVERY";
 
     private final FailedCouponRollbackRepository failedCouponRollbackRepository;
     private final UserCouponRepository userCouponRepository;
     private final CouponIssueManager couponIssueManager;
 
-    @Scheduled(fixedDelay = 300000) // 5분
+    @Value("${coupon.rollback-recovery.max-retry-count:3}")
+    private int maxRetryCount;
+
+    @Value("${coupon.rollback-recovery.batch-size:100}")
+    private int batchSize;
+
+    @Value("${coupon.rollback-recovery.cleanup-retention-days:30}")
+    private int cleanupRetentionDays;
+
+    @Scheduled(fixedDelayString = "${coupon.rollback-recovery.fixed-delay-ms:300000}")
     public void recoverFailedRollbacks() {
         log.debug("롤백 실패 복구 작업 시작");
 
         List<FailedCouponRollback> pendingRollbacks = failedCouponRollbackRepository
-                .findPendingForRetry(MAX_RETRY_COUNT, PageRequest.of(0, BATCH_SIZE));
+                .findPendingForRetry(maxRetryCount, PageRequest.of(0, batchSize));
 
         if (pendingRollbacks.isEmpty()) {
             log.debug("복구할 롤백 실패 기록 없음");
@@ -89,7 +97,7 @@ public class CouponRollbackRecoveryService {
             rollback.incrementRetryCount();
             failedCouponRollbackRepository.save(rollback);
 
-            if (!rollback.canRetry(MAX_RETRY_COUNT)) {
+            if (!rollback.canRetry(maxRetryCount)) {
                 log.error("롤백 복구 최대 재시도 초과 - 수동 처리 필요. couponId: {}, userId: {}",
                         couponId, userId);
             } else {
@@ -100,10 +108,10 @@ public class CouponRollbackRecoveryService {
         }
     }
 
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "${coupon.rollback-recovery.cleanup-cron:0 0 3 * * *}")
     @Transactional
     public void cleanupOldRecords() {
-        LocalDateTime threshold = LocalDateTime.now().minusDays(30);
+        LocalDateTime threshold = LocalDateTime.now().minusDays(cleanupRetentionDays);
         int deleted = failedCouponRollbackRepository.deleteResolvedBefore(threshold);
         if (deleted > 0) {
             log.info("오래된 롤백 실패 기록 삭제 - {}건", deleted);
