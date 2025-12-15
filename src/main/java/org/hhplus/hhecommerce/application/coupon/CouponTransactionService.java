@@ -37,8 +37,11 @@ public class CouponTransactionService {
                 .orElseThrow(() -> new CouponException(CouponErrorCode.COUPON_NOT_FOUND));
 
         if (couponIssueManager.shouldUpdateCouponStock()) {
-            coupon.issue();
-            couponRepository.save(coupon);
+            int updated = couponRepository.increaseIssuedQuantity(couponId);
+            if (updated == 0) {
+                log.warn("쿠폰 재고 업데이트 실패 - couponId: {}", couponId);
+                throw new CouponException(CouponErrorCode.COUPON_OUT_OF_STOCK);
+            }
         }
 
         UserCoupon userCoupon = new UserCoupon(userId, couponId, LocalDateTime.now().plusDays(30));
