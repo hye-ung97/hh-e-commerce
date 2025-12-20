@@ -1,9 +1,13 @@
 package org.hhplus.hhecommerce.application.order;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.OptimisticLockException;
 import org.hhplus.hhecommerce.api.dto.order.CreateOrderRequest;
 import org.hhplus.hhecommerce.domain.cart.Cart;
 import org.hhplus.hhecommerce.domain.cart.CartRepository;
+import org.hhplus.hhecommerce.domain.common.OutboxEvent;
+import org.hhplus.hhecommerce.domain.common.OutboxEventRepository;
 import org.hhplus.hhecommerce.domain.coupon.*;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponErrorCode;
 import org.hhplus.hhecommerce.domain.coupon.exception.CouponException;
@@ -23,7 +27,6 @@ import org.hhplus.hhecommerce.domain.product.exception.ProductErrorCode;
 import org.hhplus.hhecommerce.domain.product.exception.ProductException;
 import org.hhplus.hhecommerce.domain.user.User;
 import org.hhplus.hhecommerce.domain.user.UserRepository;
-import org.hhplus.hhecommerce.domain.common.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -74,7 +77,10 @@ class OrderTransactionServiceTest {
     private CouponRepository couponRepository;
 
     @Mock
-    private DomainEventPublisher eventPublisher;
+    private OutboxEventRepository outboxEventRepository;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private OrderTransactionService orderTransactionService;
@@ -85,7 +91,7 @@ class OrderTransactionServiceTest {
     private Product testProduct;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws JsonProcessingException {
         testUser = new User("테스트유저", "test@test.com", "010-1234-5678");
         testUser.setId(1L);
 
@@ -97,6 +103,8 @@ class OrderTransactionServiceTest {
 
         testProduct = new Product("테스트 상품", "설명", "전자제품");
         testProduct.setId(1L);
+
+        lenient().when(objectMapper.writeValueAsString(any())).thenReturn("{}");
     }
 
     @Nested
@@ -132,7 +140,7 @@ class OrderTransactionServiceTest {
             assertThat(result.order()).isNotNull();
             assertThat(result.orderItems()).hasSize(1);
             verify(cartRepository).deleteAllByUserId(userId);
-            verify(eventPublisher, atLeast(2)).publish(any(Object.class));
+            verify(outboxEventRepository, atLeast(2)).save(any(OutboxEvent.class));
         }
 
         @Test

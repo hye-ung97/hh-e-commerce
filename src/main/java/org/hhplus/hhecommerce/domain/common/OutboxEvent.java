@@ -57,6 +57,11 @@ public class OutboxEvent extends BaseTimeEntity {
         this.retryCount = 0;
     }
 
+    public void markAsProcessing() {
+        this.status = OutboxStatus.PROCESSING;
+        updateTimestamp();
+    }
+
     public void markAsPublished() {
         this.status = OutboxStatus.PUBLISHED;
         this.publishedAt = LocalDateTime.now();
@@ -88,6 +93,7 @@ public class OutboxEvent extends BaseTimeEntity {
 
     public enum OutboxStatus {
         PENDING,
+        PROCESSING,
         PUBLISHED,
         FAILED
     }

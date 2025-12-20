@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,6 +25,7 @@ public class OutboxEventRelay {
     private final OutboxEventRepository outboxEventRepository;
     private final DomainEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${outbox.relay.batch-size:100}")
     private int batchSize;
@@ -33,6 +35,9 @@ public class OutboxEventRelay {
 
     @Value("${outbox.relay.cleanup-retention-days:7}")
     private int cleanupRetentionDays;
+
+    @Value("${outbox.relay.processing-timeout-seconds:60}")
+    private int processingTimeoutSeconds;
 
     @Scheduled(fixedDelayString = "${outbox.relay.fixed-delay-ms:5000}")
     public void relayPendingEvents() {
@@ -64,18 +69,32 @@ public class OutboxEventRelay {
         }
     }
 
-    @Transactional
     public void publishEvent(OutboxEvent outboxEvent) {
+        // 1. 카프카 발행 전 PROCESSING 상태로 먼저 변경 (별도 트랜잭션)
+        //    이렇게 하면 발행 중에는 스케줄러가 다시 선택하지 않음
+        transactionTemplate.executeWithoutResult(status -> {
+            outboxEvent.markAsProcessing();
+            outboxEventRepository.save(outboxEvent);
+        });
+
         try {
+            // 2. 카프카 발행
             Object event = deserializeEvent(outboxEvent);
             eventPublisher.publish(event);
-            outboxEvent.markAsPublished();
-            outboxEventRepository.save(outboxEvent);
+
+            // 3. 발행 성공 → PUBLISHED (별도 트랜잭션)
+            transactionTemplate.executeWithoutResult(status -> {
+                outboxEvent.markAsPublished();
+                outboxEventRepository.save(outboxEvent);
+            });
             log.debug("Outbox 이벤트 발행 성공 - id: {}, eventType: {}",
                     outboxEvent.getId(), outboxEvent.getEventType());
         } catch (Exception e) {
-            outboxEvent.markAsFailed(e.getMessage());
-            outboxEventRepository.save(outboxEvent);
+            // 4. 발행 실패 → FAILED (별도 트랜잭션)
+            transactionTemplate.executeWithoutResult(status -> {
+                outboxEvent.markAsFailed(e.getMessage());
+                outboxEventRepository.save(outboxEvent);
+            });
             throw e;
         }
     }
@@ -139,5 +158,36 @@ public class OutboxEventRelay {
         if (deleted > 0) {
             log.info("오래된 Outbox 발행 완료 이벤트 삭제 - {}건", deleted);
         }
+    }
+
+    @Scheduled(fixedDelayString = "${outbox.relay.stuck-check-delay-ms:30000}")
+    public void recoverStuckProcessingEvents() {
+        LocalDateTime threshold = LocalDateTime.now().minusSeconds(processingTimeoutSeconds);
+        List<OutboxEvent> stuckEvents = outboxEventRepository
+                .findStuckProcessingEvents(threshold, batchSize);
+
+        if (stuckEvents.isEmpty()) {
+            return;
+        }
+
+        log.warn("PROCESSING 상태로 멈춘 이벤트 복구 시작 - 대상: {}건", stuckEvents.size());
+
+        int recovered = 0;
+        for (OutboxEvent event : stuckEvents) {
+            try {
+                transactionTemplate.executeWithoutResult(status -> {
+                    event.retry();
+                    outboxEventRepository.save(event);
+                });
+                recovered++;
+                log.info("PROCESSING 이벤트 복구 완료 - id: {}, eventType: {}",
+                        event.getId(), event.getEventType());
+            } catch (Exception e) {
+                log.error("PROCESSING 이벤트 복구 실패 - id: {}, error: {}",
+                        event.getId(), e.getMessage());
+            }
+        }
+
+        log.info("PROCESSING 상태 이벤트 복구 완료 - 복구: {}건", recovered);
     }
 }

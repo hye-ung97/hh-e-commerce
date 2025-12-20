@@ -10,5 +10,7 @@ public interface OutboxEventRepository {
 
     List<OutboxEvent> findFailedEventsForRetry(int maxRetryCount, int limit);
 
+    List<OutboxEvent> findStuckProcessingEvents(java.time.LocalDateTime threshold, int limit);
+
     int deletePublishedEventsBefore(java.time.LocalDateTime before);
 }
