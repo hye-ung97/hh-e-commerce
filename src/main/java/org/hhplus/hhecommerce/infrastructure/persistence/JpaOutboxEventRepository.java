@@ -27,6 +27,12 @@ public interface JpaOutboxEventRepository extends JpaRepository<OutboxEvent, Lon
             @Param("limit") int limit);
 
     @Override
+    @Query("SELECT o FROM OutboxEvent o WHERE o.status = 'PROCESSING' AND o.updatedAt < :threshold ORDER BY o.createdAt ASC LIMIT :limit")
+    List<OutboxEvent> findStuckProcessingEvents(
+            @Param("threshold") LocalDateTime threshold,
+            @Param("limit") int limit);
+
+    @Override
     @Modifying
     @Query("DELETE FROM OutboxEvent o WHERE o.status = 'PUBLISHED' AND o.publishedAt < :before")
     int deletePublishedEventsBefore(@Param("before") LocalDateTime before);
