@@ -9,6 +9,7 @@ import org.hhplus.hhecommerce.domain.common.RejectedAsyncTaskRepository;
 import org.hhplus.hhecommerce.domain.order.OrderCompletedEvent;
 import org.hhplus.hhecommerce.infrastructure.cache.ProductCacheManager;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -18,6 +19,7 @@ import java.util.concurrent.RejectedExecutionException;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "event.publisher.type", havingValue = "spring", matchIfMissing = true)
 public class OrderEventListener {
 
     public static final String TASK_TYPE_ORDER_COMPLETED = "ORDER_COMPLETED";

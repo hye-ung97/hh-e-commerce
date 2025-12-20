@@ -130,3 +130,20 @@ CREATE TABLE `user_coupon` (
     INDEX idx_status (status),
     INDEX idx_expired_at (expired_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='사용자 쿠폰';
+
+-- OUTBOX_EVENT 테이블 (Outbox 패턴)
+CREATE TABLE `outbox_event` (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'Outbox 이벤트 ID',
+    aggregate_type VARCHAR(50) NOT NULL COMMENT '집합체 타입 (Order, Coupon 등)',
+    aggregate_id BIGINT NOT NULL COMMENT '집합체 ID',
+    event_type VARCHAR(50) NOT NULL COMMENT '이벤트 타입 (OrderCompletedEvent 등)',
+    payload TEXT NOT NULL COMMENT '이벤트 페이로드 (JSON)',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '상태 (PENDING, PUBLISHED, FAILED)',
+    retry_count INT NOT NULL DEFAULT 0 COMMENT '재시도 횟수',
+    published_at DATETIME COMMENT '발행 완료 시각',
+    error_message VARCHAR(500) COMMENT '에러 메시지',
+    created_at DATETIME NOT NULL COMMENT '생성일시',
+    updated_at DATETIME NOT NULL COMMENT '수정일시',
+    INDEX idx_outbox_status_created (status, created_at),
+    INDEX idx_outbox_aggregate (aggregate_type, aggregate_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Outbox 이벤트';

@@ -3,14 +3,13 @@ package org.hhplus.hhecommerce.infrastructure.event;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hhplus.hhecommerce.domain.common.DomainEventPublisher;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-/**
- * Spring의 ApplicationEventPublisher를 사용한 DomainEventPublisher 구현체.
- */
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "event.publisher.type", havingValue = "spring", matchIfMissing = true)
 @RequiredArgsConstructor
 public class SpringDomainEventPublisher implements DomainEventPublisher {
 
