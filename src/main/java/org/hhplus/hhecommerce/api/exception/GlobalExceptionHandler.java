@@ -11,19 +11,32 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.Set;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    private static final Set<String> RETRYABLE_ERROR_CODES = Set.of(
+            "ORDER_CONFLICT",           // 동시 주문 처리 충돌
+            "ORDER_IN_PROGRESS",        // 이미 진행 중인 주문
+            "LOCK_ACQUISITION_FAILED",  // 분산락 획득 실패
+            "POINT_UPDATE_FAILED"       // 포인트 업데이트 실패 (낙관적 락)
+    );
+
+    private static final String DEFAULT_RETRY_AFTER_SECONDS = "2";
 
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(CustomException e) {
         ErrorCode errorCode = e.getErrorCode();
         ErrorResponse response = new ErrorResponse(errorCode.getCode(), e.getMessage());
 
-        if ("ORDER_CONFLICT".equals(errorCode.getCode())) {
+        if (RETRYABLE_ERROR_CODES.contains(errorCode.getCode())) {
+            log.info("재시도 가능한 에러 발생: code={}, message={}", errorCode.getCode(), e.getMessage());
             return ResponseEntity.status(errorCode.getHttpStatus())
-                    .header("Retry-After", "2")
+                    .header("Retry-After", DEFAULT_RETRY_AFTER_SECONDS)
+                    .header("X-Retry-Reason", errorCode.getCode())
                     .body(response);
         }
 
@@ -47,8 +60,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OptimisticLockException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLockException(OptimisticLockException e) {
         log.warn("낙관적 락 충돌 발생: {}", e.getMessage());
-        ErrorResponse response = new ErrorResponse("COUPON_SOLD_OUT", "쿠폰이 모두 소진되었습니다. 다시 시도해주세요.");
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        ErrorResponse response = new ErrorResponse("OPTIMISTIC_LOCK_CONFLICT", "동시 요청으로 인한 충돌이 발생했습니다. 잠시 후 다시 시도해주세요.");
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .header("Retry-After", DEFAULT_RETRY_AFTER_SECONDS)
+                .header("X-Retry-Reason", "OPTIMISTIC_LOCK_CONFLICT")
+                .body(response);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
