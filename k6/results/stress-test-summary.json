@@ -1,0 +1,242 @@
+{
+    "metrics": {
+        "error_rate": {
+            "passes": 1068,
+            "fails": 20048,
+            "thresholds": {
+                "rate<0.3": false
+            },
+            "value": 0.05057776093957189
+        },
+        "current_vus": {
+            "value": 3,
+            "min": 1,
+            "max": 100
+        },
+        "product_list_rt": {
+            "max": 180,
+            "p(90)": 7,
+            "p(95)": 11,
+            "avg": 3.3309510196302647,
+            "min": 0,
+            "med": 2
+        },
+        "response_time": {
+            "min": 0.336,
+            "med": 2.065,
+            "max": 193.371,
+            "p(90)": 10.484500000000004,
+            "p(95)": 14.310499999999994,
+            "avg": 4.457208183368046,
+            "thresholds": {
+                "p(95)<3000": false,
+                "p(99)<5000": false
+            }
+        },
+        "order_create_rt": {
+            "p(95)": 19.649999999999952,
+            "avg": 8.333333333333334,
+            "min": 2,
+            "med": 6,
+            "max": 168,
+            "p(90)": 13.300000000000024
+        },
+        "http_req_receiving": {
+            "p(90)": 0.14,
+            "p(95)": 0.181,
+            "avg": 0.07389179425425642,
+            "min": 0.005,
+            "med": 0.052,
+            "max": 11.629
+        },
+        "data_sent": {
+            "count": 3823986,
+            "rate": 25454.18242371086
+        },
+        "http_req_failed": {
+            "passes": 2136,
+            "fails": 21116,
+            "value": 0.091863065542749
+        },
+        "http_req_sending": {
+            "min": 0.003,
+            "med": 0.013,
+            "max": 8.373,
+            "p(90)": 0.03,
+            "p(95)": 0.043,
+            "avg": 0.022275589196626873
+        },
+        "data_received": {
+            "count": 26226444,
+            "rate": 174575.08733066416
+        },
+        "throughput": {
+            "count": 21116,
+            "rate": 140.5576579148246
+        },
+        "vus": {
+            "max": 99,
+            "value": 1,
+            "min": 1
+        },
+        "http_reqs": {
+            "count": 23252,
+            "rate": 154.77584115530885
+        },
+        "http_req_blocked": {
+            "max": 5.755,
+            "p(90)": 0.01,
+            "p(95)": 0.19689999999999794,
+            "avg": 0.025921297092721434,
+            "min": 0,
+            "med": 0.003
+        },
+        "http_req_waiting": {
+            "avg": 4.511771546533617,
+            "min": 0.296,
+            "med": 2.218,
+            "max": 193.333,
+            "p(90)": 10.441,
+            "p(95)": 14.195899999999998
+        },
+        "product_detail_rt": {
+            "p(90)": 7,
+            "p(95)": 11,
+            "avg": 3.314497087989926,
+            "min": 0,
+            "med": 2,
+            "max": 193
+        },
+        "vus_max": {
+            "value": 100,
+            "min": 100,
+            "max": 100
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 4.447807776093934,
+            "min": 0.336,
+            "med": 2.065,
+            "max": 193.371,
+            "p(90)": 10.508,
+            "p(95)": 14.22999999999999
+        },
+        "http_req_connecting": {
+            "avg": 0.01739411663512819,
+            "min": 0,
+            "med": 0,
+            "max": 5.667,
+            "p(90)": 0,
+            "p(95)": 0.122
+        },
+        "group_duration": {
+            "p(95)": 18.542218249999998,
+            "avg": 5.217938483567017,
+            "min": 0.38575,
+            "med": 2.2125624999999998,
+            "max": 193.603625,
+            "p(90)": 12.9857085
+        },
+        "checks": {
+            "fails": 1068,
+            "passes": 62280,
+            "value": 0.983140746353476
+        },
+        "http_req_duration": {
+            "med": 2.343,
+            "max": 193.371,
+            "p(90)": 10.544600000000003,
+            "p(95)": 14.300749999999985,
+            "avg": 4.607938929984502,
+            "min": 0.336,
+            "thresholds": {
+                "p(95)<3000": false
+            }
+        },
+        "http_req_tls_handshaking": {
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0
+        },
+        "iterations": {
+            "count": 21116,
+            "rate": 140.5576579148246
+        },
+        "cart_add_rt": {
+            "p(95)": 19,
+            "avg": 9.876601062168072,
+            "min": 2,
+            "med": 9,
+            "max": 55,
+            "p(90)": 16
+        },
+        "iteration_duration": {
+            "max": 721.860917,
+            "p(90)": 556.1263745,
+            "p(95)": 580.4561662499999,
+            "avg": 356.0985423673998,
+            "min": 100.922625,
+            "med": 355.67225
+        }
+    },
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "스트레스 - 상품 목록": {
+                "name": "스트레스 - 상품 목록",
+                "path": "::스트레스 - 상품 목록",
+                "id": "9b26860c76f684b65aa5e2206a714bc2",
+                "groups": {},
+                "checks": {}
+            },
+            "스트레스 - 상품 상세": {
+                "name": "스트레스 - 상품 상세",
+                "path": "::스트레스 - 상품 상세",
+                "id": "c824637d2243a3a61136adb4d43dd217",
+                "groups": {},
+                "checks": {}
+            },
+            "스트레스 - 장바구니": {
+                "path": "::스트레스 - 장바구니",
+                "id": "a11c70e80b65690c96c81fcc81b89f50",
+                "groups": {},
+                "checks": {},
+                "name": "스트레스 - 장바구니"
+            },
+            "스트레스 - 주문": {
+                "path": "::스트레스 - 주문",
+                "id": "0494a8a2efb7e79f92e5fbf8429689d1",
+                "groups": {},
+                "checks": {},
+                "name": "스트레스 - 주문"
+            }
+        },
+        "checks": {
+            "status is not 5xx": {
+                "fails": 1068,
+                "name": "status is not 5xx",
+                "path": "::status is not 5xx",
+                "id": "de072bf7d90f0b6c27b3e959dfcc1c4a",
+                "passes": 20048
+            },
+            "response received": {
+                "id": "e736e98faf37420ee43cdb8deeadf89c",
+                "passes": 21116,
+                "fails": 0,
+                "name": "response received",
+                "path": "::response received"
+            },
+            "response time < 5s": {
+                "name": "response time < 5s",
+                "path": "::response time < 5s",
+                "id": "a3d09e379831fbbef42cf19ba2dad1ea",
+                "passes": 21116,
+                "fails": 0
+            }
+        },
+        "name": "",
+        "path": ""
+    }
+}

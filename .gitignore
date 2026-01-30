@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### k6 Large Result Files ###
+k6/results/*-after-improvement.json
